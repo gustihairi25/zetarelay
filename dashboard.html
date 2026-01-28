@@ -6,6 +6,8 @@
     <title>ZetaChain Pro Terminal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
@@ -19,47 +21,58 @@
         .nav-item.active { color: #f3ba2f; }
         
         #chartContainer { width: 100%; height: 230px; position: relative; background: radial-gradient(circle at center, #111 0%, #000 100%); margin: 10px 0; overflow: hidden; }
-        #live-tag { transition: top 0.1s linear; border-radius: 4px 0 0 4px; padding: 2px 8px; box-shadow: -4px 0 15px rgba(34, 197, 94, 0.4); z-index: 20; white-space: nowrap; }
-        .coin-btn { transition: all 0.3s; flex-shrink: 0; }
-        .coin-btn.active { background: #f3ba2f; color: #000; border-color: #f3ba2f; }
+        #live-tag { transition: top 0.1s linear; border-radius: 4px 0 0 4px; padding: 2px 8px; z-index: 20; white-space: nowrap; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .chat-btn { position: fixed; bottom: 90px; right: 20px; width: 50px; height: 50px; background: #f3ba2f; color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 1001; box-shadow: 0 0 20px rgba(243,186,47,0.4); animation: bounce 2s infinite; }
-        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
     </style>
 </head>
 <body>
-    <a href="livechat.html" class="chat-btn"><i data-lucide="message-circle" class="w-6 h-6"></i></a>
-
     <div class="main-content">
         <div class="p-6 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 gold-bg rounded-xl flex items-center justify-center text-xl shadow-lg shadow-yellow-500/10">
+                <div class="w-10 h-10 gold-bg rounded-xl flex items-center justify-center text-xl">
                     <i class="fa-solid fa-user-shield"></i>
                 </div>
                 <div>
-                    <p id="u-status-kyc" class="text-[7px] text-gray-500 font-bold uppercase tracking-widest">Checking Account...</p>
-                    <h2 id="u-email" class="text-xs font-black italic gold-text uppercase">Loading...</h2>
+                    <p id="u-status-kyc" class="text-[7px] text-gray-500 font-bold uppercase tracking-widest italic">Professional Account</p>
+                    <h2 id="u-email" class="text-xs font-black italic gold-text uppercase underline decoration-yellow-500/30">Loading...</h2>
                 </div>
             </div>
             <button onclick="location.href='setting-akun.html'" class="text-gray-500 active:scale-90 transition-transform"><i class="fa-solid fa-gear text-lg"></i></button>
         </div>
 
-        <div class="px-6 space-y-3">
-            <div class="bg-card p-5 rounded-[1.5rem] border-l-4 border-yellow-500">
-                <p class="text-[8px] text-gray-500 font-black uppercase tracking-widest">Saldo Akun Utama</p>
-                <h3 id="u-balance-akun" class="text-2xl font-black italic tracking-tighter">Rp 0</h3>
-            </div>
-            <div class="bg-card p-4 rounded-[1.5rem] flex justify-between items-center">
-                <div>
-                    <p class="text-[8px] text-yellow-600 font-bold uppercase">Aset Berjalan</p>
-                    <h3 id="u-balance-aset" class="text-lg font-black italic gold-text">Rp 0</h3>
+        <div class="px-6">
+            <div class="bg-card p-5 rounded-[2rem] border-l-4 border-yellow-500 mb-4 shadow-xl shadow-yellow-500/5">
+                <p class="text-[8px] text-gray-500 font-black uppercase tracking-[3px] mb-1">Total Equity (Multi-Chain)</p>
+                <div class="flex items-baseline gap-2">
+                    <h3 id="u-total-equity" class="text-3xl font-black italic tracking-tighter text-white">0.00</h3>
+                    <span class="text-[10px] gold-text font-black">USD</span>
                 </div>
-                <i class="fa-solid fa-chart-pie text-xl text-yellow-500/20"></i>
             </div>
+            
+            <div id="mini-wallets" class="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+                </div>
         </div>
 
         <div class="px-6 mt-6">
-            <p class="text-[8px] text-gray-500 font-black uppercase mb-3 tracking-[3px]">Pilih Market</p>
+            <div class="bg-card p-6 rounded-[2rem] border border-white/5 text-center relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-3 opacity-10"><i class="fa-solid fa-qrcode text-4xl"></i></div>
+                <p class="text-[9px] text-yellow-500 font-black uppercase tracking-widest mb-4">Topup Jaringan: <span id="coin-label" class="underline">BTC</span></p>
+                
+                <div id="qrcode" class="bg-white p-3 rounded-2xl inline-block shadow-2xl shadow-yellow-500/20"></div>
+                
+                <div class="mt-4 p-3 bg-black/60 rounded-xl border border-white/5 group active:bg-yellow-500/10 transition-colors cursor-pointer" onclick="copyDepositAddr()">
+                    <p id="deposit-address" class="text-[9px] font-mono break-all text-gray-400 uppercase tracking-tighter leading-tight"></p>
+                    <p class="mt-2 text-[7px] font-black gold-text uppercase italic"><i class="fa-solid fa-copy mr-1"></i> Tap untuk Salin Alamat</p>
+                </div>
+
+                <button onclick="confirmTransfer()" class="w-full mt-4 py-4 gold-bg rounded-2xl font-black italic uppercase text-[10px] shadow-lg active:scale-95 transition-all">
+                    Konfirmasi Deposit Selesai
+                </button>
+            </div>
+        </div>
+
+        <div class="px-6 mt-8">
+            <p class="text-[8px] text-gray-500 font-black uppercase mb-3 tracking-[3px]">Bursa Live</p>
             <div id="coin-list" class="flex gap-2 overflow-x-auto no-scrollbar pb-2"></div>
         </div>
 
@@ -68,87 +81,53 @@
                 <h4 id="active-coin-name" class="text-lg font-black italic gold-text tracking-tighter">BTC/USDT</h4>
             </div>
             <canvas id="mainChart"></canvas>
-            <div id="live-tag" class="absolute right-0 bg-green-500 text-black font-black italic text-[9px]">Rp 0</div>
+            <div id="live-tag" class="absolute right-0 bg-green-500 text-black font-black italic text-[9px]">0.00</div>
         </div>
 
-        <div class="px-6 grid grid-cols-4 gap-3 mt-4">
-            <div onclick="location.href='topup.html'" class="flex flex-col items-center gap-1.5 cursor-pointer">
-                <div class="w-full aspect-square bg-card rounded-2xl flex items-center justify-center text-yellow-500"><i class="fa-solid fa-wallet text-lg"></i></div>
-                <span class="text-[7px] font-bold text-gray-500 uppercase">Deposit</span>
+        <div class="px-6 grid grid-cols-4 gap-3 mt-4 mb-20">
             </div>
-            <div onclick="location.href='withdraw.html'" class="flex flex-col items-center gap-1.5 cursor-pointer">
-                <div class="w-full aspect-square bg-card rounded-2xl flex items-center justify-center text-blue-500"><i class="fa-solid fa-money-bill-transfer text-lg"></i></div>
-                <span class="text-[7px] font-bold text-gray-500 uppercase">Tarik</span>
-            </div>
-            <div onclick="location.href='bursa-pasar.html'" class="flex flex-col items-center gap-1.5 cursor-pointer">
-                <div class="w-full aspect-square bg-card rounded-2xl flex items-center justify-center text-green-500"><i class="fa-solid fa-shop text-lg"></i></div>
-                <span class="text-[7px] font-bold text-gray-500 uppercase">Bursa</span>
-            </div>
-            <div onclick="location.href='future-trade.html'" class="flex flex-col items-center gap-1.5 cursor-pointer">
-                <div class="w-full aspect-square bg-card rounded-2xl flex items-center justify-center text-red-500"><i class="fa-solid fa-bolt-lightning text-lg"></i></div>
-                <span class="text-[7px] font-bold text-gray-500 uppercase">Futures</span>
-            </div>
-            <div onclick="location.href='refferal.html'" class="flex flex-col items-center gap-1.5 cursor-pointer">
-                <div class="w-full aspect-square bg-card rounded-2xl flex items-center justify-center text-orange-500"><i class="fa-solid fa-users text-lg"></i></div>
-                <span class="text-[7px] font-bold text-gray-500 uppercase">Refferal</span>
-            </div>
-            <div onclick="location.href='tambahteman.html'" class="flex flex-col items-center gap-1.5 cursor-pointer">
-                <div class="w-full aspect-square bg-card rounded-2xl flex items-center justify-center text-purple-500"><i class="fa-solid fa-user-plus text-lg"></i></div>
-                <span class="text-[7px] font-bold text-gray-500 uppercase">Teman</span>
-            </div>
-            <div onclick="location.href='kyc.html'" class="flex flex-col items-center gap-1.5 cursor-pointer">
-                <div class="w-full aspect-square bg-card rounded-2xl flex items-center justify-center text-cyan-500"><i class="fa-solid fa-id-card text-lg"></i></div>
-                <span class="text-[7px] font-bold text-gray-500 uppercase">KYC</span>
-            </div>
-            <div onclick="location.href='setting-akun.html'" class="flex flex-col items-center gap-1.5 cursor-pointer">
-                <div class="w-full aspect-square bg-card rounded-2xl flex items-center justify-center text-gray-300"><i class="fa-solid fa-gear text-lg"></i></div>
-                <span class="text-[7px] font-bold text-gray-500 uppercase">Setting</span>
-            </div>
-        </div>
-
-        <div class="px-6 mt-8 pb-10">
-            <h4 class="text-[10px] font-black italic uppercase gold-text tracking-widest mb-4">Riwayat Transaksi</h4>
-            <div class="space-y-3" id="history-container"></div>
-        </div>
     </div>
 
     <nav class="bottom-nav">
         <div class="nav-item active"><i class="fa-solid fa-house-chimney text-xl"></i><span>Beranda</span></div>
-        <div onclick="location.href='bursa-pasar.html'" class="nav-item cursor-pointer"><i class="fa-solid fa-chart-line text-xl"></i><span>Pasar</span></div>
-        <div onclick="location.href='future-trade.html'" class="nav-item cursor-pointer"><i class="fa-solid fa-shuffle text-xl"></i><span>Trade</span></div>
-        <div onclick="location.href='profil.html'" class="nav-item cursor-pointer"><i class="fa-solid fa-user-circle text-xl"></i><span>Profil</span></div>
+        <div onclick="location.href='bursa-pasar.html'" class="nav-item"><i class="fa-solid fa-chart-line text-xl"></i><span>Pasar</span></div>
+        <div onclick="location.href='future-trade.html'" class="nav-item"><i class="fa-solid fa-shuffle text-xl"></i><span>Trade</span></div>
+        <div onclick="location.href='profil.html'" class="nav-item"><i class="fa-solid fa-user-circle text-xl"></i><span>Profil</span></div>
     </nav>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, doc, onSnapshot, collection, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, onSnapshot, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        const firebaseConfig = { 
-            apiKey: "AIzaSyDrpBJTtankyLgimtOwuriFpiyuC5K10OI", 
-            authDomain: "studio-727777898-40aea.firebaseapp.com", 
-            projectId: "studio-727777898-40aea", 
-            appId: "1:351263967108:web:a0c01af41422903cc17fd1" 
-        };
-        const app = initializeApp(firebaseConfig);
+        const app = initializeApp(APP_CONFIG.firebase);
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        const coins = ["BTC", "ETH", "BNB", "SOL", "XRP", "ADA", "DOGE", "TRX", "MATIC", "DOT", "LTC", "SHIB", "AVAX", "LINK", "UNI", "BCH", "NEAR", "FIL", "ICP", "ETC"];
+        // 10 Mata Uang Crypto Utama
+        const mainCoins = ["BTC", "ETH", "SOL", "TRX", "BNB", "MATIC", "ARB", "BASE", "OP", "LINEA"];
         let currentCoin = localStorage.getItem('selectedCoin') || "BTC";
-        let targetPrice = null;
-        let lastUpdateTime = 0;
 
+        // Generate Mini Wallet UI
+        const miniContainer = document.getElementById('mini-wallets');
+        mainCoins.forEach(coin => {
+            miniContainer.innerHTML += `
+                <div class="bg-card p-3 rounded-2xl min-w-[100px] border border-white/5">
+                    <p class="text-[7px] text-gray-500 font-bold">${coin} WALLET</p>
+                    <p id="bal-${coin}" class="text-[11px] font-black italic gold-text">0.00</p>
+                </div>
+            `;
+        });
+
+        // Market List Buttons
         const coinList = document.getElementById('coin-list');
-        coins.forEach(c => {
+        mainCoins.forEach(c => {
             const btn = document.createElement('button');
-            btn.className = `coin-btn px-4 py-2 rounded-xl border border-white/10 text-[10px] font-bold ${c === currentCoin ? 'active' : 'bg-card'}`;
-            btn.innerText = c + "/USDT";
+            btn.className = `px-4 py-2 rounded-xl border border-white/10 text-[10px] font-black italic uppercase ${c === currentCoin ? 'gold-bg text-black' : 'bg-card text-gray-500'}`;
+            btn.innerText = c;
             btn.onclick = () => { localStorage.setItem('selectedCoin', c); location.reload(); };
             coinList.appendChild(btn);
         });
-
-        onSnapshot(doc(db, "market", currentCoin), (s) => { if(s.exists()) targetPrice = s.data().manualPrice || null; });
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -156,147 +135,94 @@
                 onSnapshot(doc(db, "users", user.uid), (snap) => {
                     const d = snap.data();
                     if(d) {
-                        document.getElementById('u-email').innerText = d.email.split('@')[0].toUpperCase();
-                        document.getElementById('u-balance-akun').innerText = "Rp " + (d.balance || 0).toLocaleString('id-ID');
-                        document.getElementById('u-balance-aset').innerText = "Rp " + (d.aset_balance || 0).toLocaleString('id-ID');
-                        const s = (d.kyc_status || 'Unverified').toUpperCase();
-                        document.getElementById('u-status-kyc').innerText = s + " TRADER";
-                        document.getElementById('u-status-kyc').className = `text-[7px] font-bold uppercase tracking-widest ${s === 'VERIFIED' ? 'text-green-500' : 'text-gray-500'}`;
+                        document.getElementById('u-email').innerText = d.email.split('@')[0];
+                        document.getElementById('u-total-equity').innerText = (d.balance_usd || 0).toFixed(2);
+                        
+                        // Update individual balances
+                        mainCoins.forEach(coin => {
+                            const val = d[`bal_${coin.toLowerCase()}`] || 0;
+                            document.getElementById(`bal-${coin}`).innerText = val.toFixed(coin === "BTC" ? 6 : 2);
+                        });
                     }
                 });
-                const qT = query(collection(db, "users", user.uid, "transactions"), orderBy("timestamp", "desc"), limit(5));
-                onSnapshot(qT, (qs) => {
-                    const container = document.getElementById('history-container');
-                    container.innerHTML = "";
-                    qs.forEach(doc => {
-                        const t = doc.data();
-                        const isPlus = t.type === 'deposit' || t.type === 'profit';
-                        container.innerHTML += `<div class="bg-card p-4 rounded-2xl flex justify-between items-center border border-white/5">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-full ${isPlus ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'} flex items-center justify-center text-xs">
-                                    <i class="fa-solid ${isPlus ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
-                                </div>
-                                <div><p class="text-[10px] font-bold">${t.title || 'Transaksi'}</p><p class="text-[8px] text-gray-500">Baru saja</p></div>
-                            </div>
-                            <p class="text-[10px] font-black ${isPlus ? 'text-green-500' : 'text-red-500'}">${isPlus?'+':'-'} Rp ${(t.amount||0).toLocaleString('id-ID')}</p>
-                        </div>`;
-                    });
-                });
-            } else { window.location.href = "login.html"; }
+            } else { location.href = "login.html"; }
         });
 
-        // --- ENJIN GRAFIK PRO (ULTRA FAST - 60 FPS) ---
+        // --- DYNAMIC DEPOSIT SYSTEM ---
+        function initDeposit() {
+            const addr = APP_CONFIG.depositAddresses[currentCoin] || APP_CONFIG.depositAddresses["ETH"];
+            document.getElementById('coin-label').innerText = currentCoin;
+            document.getElementById('deposit-address').innerText = addr;
+
+            const qrContainer = document.getElementById("qrcode");
+            qrContainer.innerHTML = "";
+            new QRCode(qrContainer, {
+                text: addr,
+                width: 120,
+                height: 120,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        }
+
+        window.copyDepositAddr = () => {
+            const addr = document.getElementById('deposit-address').innerText;
+            navigator.clipboard.writeText(addr);
+            alert("Alamat " + currentCoin + " Berhasil Disalin!");
+        };
+
+        window.confirmTransfer = async () => {
+            const amt = prompt("Masukkan jumlah koin yang Anda kirim:");
+            if(!amt || isNaN(amt)) return;
+            const user = auth.currentUser;
+            await addDoc(collection(db, "users", user.uid, "transactions"), {
+                title: `Deposit ${currentCoin}`,
+                amount: parseFloat(amt),
+                type: 'deposit',
+                status: 'pending',
+                timestamp: new Date()
+            });
+            alert("Laporan deposit dikirim! Saldo akan masuk setelah divalidasi admin.");
+        };
+
+        initDeposit();
+
+        // --- ENJIN GRAFIK (BTC/ETH/ETC) ---
+        // (Gunakan kode grafik dari dashboard.html sebelumnya di sini)
+        // Ganti bagian "Rp" menjadi "$" pada label harga
+        
         const canvas = document.getElementById('mainChart');
         const ctx = canvas.getContext('2d');
         const tag = document.getElementById('live-tag');
-        document.getElementById('active-coin-name').innerText = currentCoin + "/USDT";
-
-        let basePrice = currentCoin === "BTC" ? 900000000 : (currentCoin === "ETH" ? 40000000 : 500000);
-        let prices = JSON.parse(localStorage.getItem(`p_v3_${currentCoin}`)) || Array.from({length: 120}, () => basePrice + (Math.random()-0.5)*20000);
-        
-        // Logika Pergerakan Baru
-        let momentum = 0;
-        let volatility = 0.0008; // Volatilitas dasar
-
-        function updateLogic() {
-            let last = prices[prices.length - 1];
-            let next;
-
-            if (targetPrice) {
-                // Mode Admin: Pergerakan sangat agresif ke target
-                const gap = targetPrice - last;
-                next = last + (gap * 0.1) + (Math.random() - 0.5) * (last * 0.0005);
-            } else {
-                // Simulasi Momentum Nyata (Naik Turun Berantai)
-                momentum += (Math.random() - 0.5) * 0.0002;
-                momentum *= 0.95; // Redaman agar tidak melesat tak terkendali
-
-                // Kejutan Volatilitas Mendadak
-                if (Math.random() > 0.98) momentum += (Math.random() - 0.5) * 0.005;
-
-                const change = last * momentum + (Math.random() - 0.5) * (last * volatility);
-                next = last + change;
-
-                // Batas keamanan agar harga tetap logis
-                if (next < basePrice * 0.5) next = basePrice * 0.55;
-                if (next > basePrice * 2.0) next = basePrice * 1.95;
-            }
-
-            prices.push(next);
-            prices.shift();
-            draw();
-        }
+        let prices = Array.from({length: 60}, () => 50000 + (Math.random()-0.5)*1000);
 
         function draw() {
-            if(!canvas.offsetWidth) return;
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
-
-            // Zoom-in mode: Skala diperketat agar jangkauan terlihat panjang/ekstrem
-            const min = Math.min(...prices) * 0.9995;
-            const max = Math.max(...prices) * 1.0005;
-            const stepX = canvas.width / (prices.length - 1);
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // 1. Area Glow Gradient Dinamis
-            const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            const latestPrice = prices[prices.length - 1];
-            const isBullish = latestPrice >= prices[prices.length - 2];
-            
-            if(isBullish) {
-                grad.addColorStop(0, "rgba(34, 197, 94, 0.2)");
-            } else {
-                grad.addColorStop(0, "rgba(239, 68, 68, 0.2)");
-            }
-            grad.addColorStop(1, "rgba(0, 0, 0, 0)");
-
+            canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
+            const min = Math.min(...prices) * 0.999;
+            const max = Math.max(...prices) * 1.001;
+            ctx.clearRect(0,0,canvas.width, canvas.height);
             ctx.beginPath();
-            ctx.moveTo(0, canvas.height);
-            prices.forEach((p, i) => {
-                const x = i * stepX;
-                const y = canvas.height - ((p - min) / (max - min) * canvas.height);
-                ctx.lineTo(x, y);
-            });
-            ctx.lineTo(canvas.width, canvas.height);
-            ctx.fillStyle = grad;
-            ctx.fill();
-
-            // 2. Main Glowing Line
-            ctx.beginPath();
-            ctx.strokeStyle = isBullish ? "#22c55e" : "#ef4444";
+            ctx.strokeStyle = "#f3ba2f";
             ctx.lineWidth = 2;
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = isBullish ? "rgba(34, 197, 94, 0.5)" : "rgba(239, 68, 68, 0.5)";
-            ctx.lineJoin = "round";
-
             prices.forEach((p, i) => {
-                const x = i * stepX;
+                const x = i * (canvas.width / 59);
                 const y = canvas.height - ((p - min) / (max - min) * canvas.height);
-                if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-                
-                if(i === prices.length - 1) {
-                    // Update Tag Harga
-                    tag.style.top = (y - 12) + "px";
-                    tag.innerText = "Rp " + Math.floor(p).toLocaleString('id-ID');
-                    tag.className = `absolute right-0 ${isBullish ? 'bg-green-500' : 'bg-red-500'} text-black font-black italic text-[9px] px-2 py-0.5 z-20`;
-                    
-                    // Simpan ke local storage sesekali agar tidak berat
-                    if(Date.now() - lastUpdateTime > 5000) {
-                        localStorage.setItem(`p_v3_${currentCoin}`, JSON.stringify(prices));
-                        lastUpdateTime = Date.now();
-                    }
+                if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+                if(i===59) {
+                    tag.style.top = (y-10)+"px";
+                    tag.innerText = p.toFixed(2);
                 }
             });
             ctx.stroke();
-            ctx.shadowBlur = 0;
         }
-
-        // Jalankan setiap 50ms untuk sensasi real-time milidetik
-        setInterval(updateLogic, 50);
-        window.addEventListener('resize', draw);
+        setInterval(() => {
+            prices.push(prices[prices.length-1] + (Math.random()-0.5)*10);
+            prices.shift();
+            draw();
+        }, 1000);
+        
         lucide.createIcons();
     </script>
 </body>
 </html>
-

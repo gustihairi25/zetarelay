@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZetaChain PRO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <style>
+        body { background-color: #050505; color: #ffffff; font-family: sans-serif; }
+        .gold-btn { background: linear-gradient(135deg, #f3ba2f 0%, #ffdb4d 100%); color: black; font-weight: 800; }
+        .input-box { background: #121212; border: 1px solid #222; color: white; padding: 15px; border-radius: 12px; width: 100%; outline: none; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-6">
+
+    <div class="w-full max-w-sm">
+        <div id="login-box" class="space-y-4">
+            <h1 class="text-2xl font-black text-center italic text-[#f3ba2f]">ZETACHAIN PRO</h1>
+            <input type="email" id="email" class="input-box" placeholder="Email">
+            <input type="password" id="pass" class="input-box" placeholder="Password">
+            <button onclick="doLogin()" id="btn-l" class="w-full py-4 gold-btn rounded-xl uppercase">Login Sekarang</button>
+            <p class="text-center text-xs text-gray-400">Belum punya akun? <span onclick="slide()" class="text-[#f3ba2f] underline cursor-pointer">Daftar</span></p>
+        </div>
+
+        <div id="reg-box" class="space-y-4 hidden">
+            <h1 class="text-2xl font-black text-center italic text-[#f3ba2f]">DAFTAR AKUN</h1>
+            <input type="email" id="r-email" class="input-box" placeholder="Email Baru">
+            <input type="password" id="r-pass" class="input-box" placeholder="Password (Min 6)">
+            <input type="tel" id="r-phone" class="input-box" placeholder="No. WhatsApp">
+            <input type="text" id="r-reff" class="input-box" placeholder="Kode Refferal (Opsional)">
+            
+            <button onclick="doReg()" id="btn-r" class="w-full py-4 gold-btn rounded-xl uppercase">Buat Akun</button>
+            <p class="text-center text-xs text-gray-400">Sudah punya akun? <span onclick="slide()" class="text-[#f3ba2f] underline cursor-pointer">Login</span></p>
+        </div>
+    </div>
+
+    <script>
+        var firebaseConfig = {
+            apiKey: "AIzaSyDrpBJTtankyLgimtOwuriFpiyuC5K10OI",
+            authDomain: "studio-727777898-40aea.firebaseapp.com",
+            projectId: "studio-727777898-40aea",
+            storageBucket: "studio-727777898-40aea.appspot.com",
+            messagingSenderId: "351263967108",
+            appId: "1:351263967108:web:a0c01af41422903cc17fd1"
+        };
+        firebase.initializeApp(firebaseConfig);
+
+        function slide() {
+            document.getElementById('login-box').classList.toggle('hidden');
+            document.getElementById('reg-box').classList.toggle('hidden');
+        }
+
+        function doLogin() {
+            var m = document.getElementById('email').value;
+            var p = document.getElementById('pass').value;
+            if(!m || !p) return alert("Isi email dan password");
+
+            document.getElementById('btn-l').innerText = "MEMUAT...";
+            firebase.auth().signInWithEmailAndPassword(m, p)
+                .then(() => { window.location.href = "pin.html"; })
+                .catch((e) => { 
+                    alert("Error: " + e.message); 
+                    document.getElementById('btn-l').innerText = "Login Sekarang"; 
+                });
+        }
+
+        function doReg() {
+            var m = document.getElementById('r-email').value;
+            var p = document.getElementById('r-pass').value;
+            var h = document.getElementById('r-phone').value;
+            var ref = document.getElementById('r-reff').value; // Ambil nilai refferal
+
+            if(!m || !p || !h) return alert("Lengkapi data pendaftaran");
+
+            document.getElementById('btn-r').innerText = "MEMPROSES...";
+            firebase.auth().createUserWithEmailAndPassword(m, p)
+                .then((res) => {
+                    // Simpan data ke Firestore termasuk kolom refferal
+                    firebase.firestore().collection("users").doc(res.user.uid).set({
+                        email: m, 
+                        phone: h, 
+                        refferal: ref, // Data refferal masuk sini
+                        pin: "", 
+                        balance: 0,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }).then(() => { 
+                        window.location.href = "pin.html"; 
+                    });
+                })
+                .catch((e) => { 
+                    alert("Error: " + e.message); 
+                    document.getElementById('btn-r').innerText = "Buat Akun"; 
+                });
+        }
+    </script>
+</body>
+</html>

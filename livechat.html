@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Support Live Chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { background: #000; color: #fff; font-family: sans-serif; overflow: hidden; height: 100vh; }
+        .bubble-user { background: #f3ba2f; color: #000; border-radius: 1.2rem 1.2rem 0.2rem 1.2rem; align-self: flex-end; padding: 10px 14px; max-width: 85%; font-weight: 700; font-size: 13px; }
+        .bubble-admin { background: #1a1a1a; color: #fff; border-radius: 1.2rem 1.2rem 1.2rem 0.2rem; border: 1px solid #333; align-self: flex-start; padding: 10px 14px; max-width: 85%; font-weight: 700; font-size: 13px; }
+        #chat-container::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="flex flex-col h-screen">
+
+    <div class="p-4 border-b border-white/10 flex items-center justify-between bg-black">
+        <div class="flex items-center gap-3">
+            <button onclick="history.back()" class="p-2"><i data-lucide="chevron-left"></i></button>
+            <div>
+                <h1 class="text-sm font-black uppercase tracking-tighter">Live Support</h1>
+                <p class="text-[9px] text-green-500 font-bold uppercase">Online</p>
+            </div>
+        </div>
+        <i data-lucide="shield-check" class="text-yellow-500 w-5 h-5"></i>
+    </div>
+
+    <div id="chat-container" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-black"></div>
+
+    <div class="p-4 bg-black border-t border-white/10">
+        <div class="flex items-center gap-2 bg-[#111] p-1.5 rounded-2xl border border-white/5">
+            <input type="text" id="msg-input" placeholder="Tulis pesan..." class="flex-1 bg-transparent border-none outline-none px-3 text-sm font-bold h-12">
+            <button id="btn-send" class="w-12 h-12 bg-[#f3ba2f] text-black rounded-xl flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+                <i data-lucide="send" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, doc, onSnapshot, query, orderBy, addDoc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrpBJTtankyLgimtOwuriFpiyuC5K10OI",
+            authDomain: "studio-727777898-40aea.firebaseapp.com",
+            projectId: "studio-727777898-40aea",
+            appId: "1:351263967108:web:a0c01af41422903cc17fd1"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        let currentUser = null;
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                loadMessages(user.uid);
+            } else {
+                window.location.href = "login.html";
+            }
+        });
+
+        function loadMessages(uid) {
+            const q = query(collection(db, "users", uid, "chats"), orderBy("timestamp", "asc"));
+            onSnapshot(q, (snap) => {
+                const container = document.getElementById('chat-container');
+                container.innerHTML = '';
+                snap.forEach(d => {
+                    const m = d.data();
+                    const isAdmin = m.sender === 'admin';
+                    container.innerHTML += `
+                        <div class="${isAdmin ? 'bubble-admin' : 'bubble-user'}">
+                            <p>${m.text}</p>
+                        </div>`;
+                });
+                container.scrollTop = container.scrollHeight;
+            });
+        }
+
+        document.getElementById('btn-send').onclick = async () => {
+            const input = document.getElementById('msg-input');
+            const text = input.value.trim();
+            if(!text || !currentUser) return;
+
+            input.value = ''; // Clear input
+            try {
+                // Simpan ke koleksi chats milik user
+                await addDoc(collection(db, "users", currentUser.uid, "chats"), {
+                    sender: 'user',
+                    text: text,
+                    timestamp: serverTimestamp()
+                });
+                
+                // Beri notifikasi ke admin di dokumen user
+                await updateDoc(doc(db, "users", currentUser.uid), {
+                    lastMsgBy: 'user',
+                    lastRead: false
+                });
+            } catch (e) { console.error(e); }
+        };
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>

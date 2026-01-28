@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Future Trade | Pro Terminal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        body { background: #000; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; overflow: hidden; height: 100vh; }
+        .glass { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(15px); }
+        .gold-text { color: #f3ba2f; }
+        .t-btn.active { background: #f3ba2f; color: #000; font-weight: 800; border-color: #f3ba2f; }
+        #chart-wrapper { height: 45vh; width: 100%; position: relative; margin-top: 10px; }
+        #mainChart { width: 100%; height: 100%; }
+        #live-tag { position: absolute; right: 0; background: #f3ba2f; color: #000; padding: 2px 8px; border-radius: 4px 0 0 4px; font-size: 11px; font-weight: 800; z-index: 20; transition: top 0.1s; }
+        #floating-timer { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); border: 2px solid #f3ba2f; padding: 8px 20px; border-radius: 50px; display: none; align-items: center; gap: 10px; z-index: 100; box-shadow: 0 0 20px rgba(243,186,47,0.3); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="bg-black">
+    <div class="p-4 flex justify-between items-center border-b border-white/5">
+        <div class="flex items-center gap-3">
+            <button onclick="window.location.href='dashboard.html'" class="p-2 glass rounded-xl text-yellow-500"><i data-lucide="arrow-left"></i></button>
+            <div>
+                <h2 id="trade-coin-title" class="text-[10px] font-black gold-text uppercase italic tracking-widest">BTC/USDT Future</h2>
+                <p id="u-balance" class="text-[11px] font-bold text-gray-500">Saldo: Rp 0</p>
+            </div>
+        </div>
+        <div class="text-right">
+            <p id="live-price" class="text-lg font-black gold-text">0.00</p>
+        </div>
+    </div>
+
+    <div id="floating-timer">
+        <div class="w-3 h-3 bg-red-600 rounded-full animate-pulse"></div>
+        <span id="timer-display" class="font-black text-xl gold-text">00:30</span>
+        <span id="strike-info" class="text-[9px] text-gray-400 font-bold ml-2"></span>
+    </div>
+
+    <div class="flex gap-2 overflow-x-auto no-scrollbar p-3 bg-white/5">
+        <div id="coin-list-trade" class="flex gap-2"></div>
+    </div>
+
+    <div id="chart-wrapper">
+        <div id="live-tag">Rp 0</div>
+        <canvas id="mainChart"></canvas>
+    </div>
+
+    <div class="p-6 space-y-4 relative z-10 bg-black">
+        <div class="grid grid-cols-3 gap-2">
+            <button id="btn-30s" class="t-btn active py-3 glass rounded-xl text-[10px] font-black uppercase">30 Detik</button>
+            <button id="btn-60s" class="t-btn py-3 glass rounded-xl text-[10px] font-black uppercase">1 Menit</button>
+            <div class="py-3 glass rounded-xl text-[10px] font-black text-center gold-text uppercase border border-yellow-500/20">Profit 85%</div>
+        </div>
+        <div class="relative">
+            <span class="absolute left-5 top-1/2 -translate-y-1/2 text-gray-600 font-bold text-xs uppercase">Pasang Rp</span>
+            <input type="number" id="trade-amount" value="50000" class="w-full bg-white/5 border border-white/10 p-5 pl-24 rounded-3xl outline-none font-black text-center text-xl text-white">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            <button id="btn-higher" class="bg-green-600 py-6 rounded-3xl font-black uppercase italic shadow-lg active:scale-95 transition-all">Higher</button>
+            <button id="btn-lower" class="bg-red-600 py-6 rounded-3xl font-black uppercase italic shadow-lg active:scale-95 transition-all">Lower</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyDrpBJTtankyLgimtOwuriFpiyuC5K10OI", authDomain: "studio-727777898-40aea.firebaseapp.com", projectId: "studio-727777898-40aea", appId: "1:351263967108:web:a0c01af41422903cc17fd1" };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        const coins = ["BTC", "ETH", "BNB", "SOL", "XRP", "ADA", "DOGE", "TRX", "MATIC", "DOT", "LTC", "SHIB", "AVAX", "LINK", "UNI", "BCH", "NEAR", "FIL", "ICP", "ETC"];
+        let currentCoin = localStorage.getItem('selectedCoin') || "BTC";
+        document.getElementById('trade-coin-title').innerText = currentCoin + "/USDT Future";
+
+        const coinContainer = document.getElementById('coin-list-trade');
+        coins.forEach(c => {
+            const btn = document.createElement('button');
+            btn.className = `px-4 py-2 rounded-xl border text-[10px] font-black transition-all ${c === currentCoin ? 'bg-yellow-500 text-black border-yellow-500' : 'border-white/10 text-white'}`;
+            btn.innerText = c;
+            btn.onclick = () => { localStorage.setItem('selectedCoin', c); location.reload(); };
+            coinContainer.appendChild(btn);
+        });
+
+        const canvas = document.getElementById('mainChart');
+        const ctx = canvas.getContext('2d');
+        const tag = document.getElementById('live-tag');
+        const priceDisplay = document.getElementById('live-price');
+
+        let strikePrice = null;
+        let lastPrice = 0;
+
+        // FUNGSI DRAW SINKRON (BACA DARI DASHBOARD)
+        function drawChart() {
+            const raw = localStorage.getItem(`price_data_${currentCoin}`);
+            if(!raw || !canvas.offsetWidth) return;
+            const prices = JSON.parse(raw);
+
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            const min = Math.min(...prices) * 0.998;
+            const max = Math.max(...prices) * 1.002;
+            const stepX = canvas.width / (prices.length - 1);
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if(strikePrice) {
+                const strikeY = canvas.height - ((strikePrice - min) / (max - min) * canvas.height);
+                ctx.beginPath(); ctx.setLineDash([5, 5]);
+                ctx.strokeStyle = "rgba(255,255,255,0.4)";
+                ctx.moveTo(0, strikeY); ctx.lineTo(canvas.width, strikeY);
+                ctx.stroke(); ctx.setLineDash([]);
+            }
+
+            ctx.beginPath();
+            ctx.strokeStyle = "#f3ba2f";
+            ctx.lineWidth = 3;
+            ctx.lineJoin = "round";
+
+            prices.forEach((p, i) => {
+                const x = i * stepX;
+                const y = canvas.height - ((p - min) / (max - min) * canvas.height);
+                if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                if(i === prices.length - 1) {
+                    tag.style.top = (y - 10) + "px";
+                    tag.innerText = "Rp " + Math.floor(p).toLocaleString('id-ID');
+                    priceDisplay.innerText = Math.floor(p).toLocaleString('id-ID');
+                    lastPrice = p;
+                }
+            });
+            ctx.stroke();
+        }
+
+        // Cek data setiap 100ms agar grafik bergerak halus mengikuti dashboard
+        setInterval(drawChart, 100);
+
+        let uid = null, currentBalance = 0, selectedDuration = 30;
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                uid = user.uid;
+                onSnapshot(doc(db, "users", uid), (s) => {
+                    if(s.exists()){
+                        currentBalance = s.data().balance || 0;
+                        document.getElementById('u-balance').innerText = `Saldo: Rp ${currentBalance.toLocaleString('id-ID')}`;
+                    }
+                });
+            } else { window.location.href = "login.html"; }
+        });
+
+        const startTrade = async (dir) => {
+            if(strikePrice) return;
+            const amt = parseInt(document.getElementById('trade-amount').value);
+            if(amt > currentBalance) return alert("Saldo Kurang!");
+            strikePrice = lastPrice;
+            await updateDoc(doc(db, "users", uid), { balance: increment(-amt) });
+            const timerBox = document.getElementById('floating-timer');
+            const timerDisplay = document.getElementById('timer-display');
+            document.getElementById('strike-info').innerText = "STRIKE: " + Math.floor(strikePrice).toLocaleString('id-ID');
+            timerBox.style.display = "flex";
+
+            let left = selectedDuration;
+            const timer = setInterval(async () => {
+                left--;
+                timerDisplay.innerText = `00:${left < 10 ? '0'+left : left}`;
+                if(left <= 0) {
+                    clearInterval(timer);
+                    timerBox.style.display = "none";
+                    const win = (dir === 'HIGHER') ? (lastPrice > strikePrice) : (lastPrice < strikePrice);
+                    if(win) {
+                        const untung = amt * 1.85;
+                        await updateDoc(doc(db, "users", uid), { balance: increment(untung) });
+                        alert("WIN! +Rp " + untung.toLocaleString('id-ID'));
+                    } else { alert("LOSS!"); }
+                    strikePrice = null;
+                }
+            }, 1000);
+        };
+
+        document.getElementById('btn-30s').onclick = () => { selectedDuration = 30; updateActiveBtn('btn-30s'); }
+        document.getElementById('btn-60s').onclick = () => { selectedDuration = 60; updateActiveBtn('btn-60s'); }
+        function updateActiveBtn(id) {
+            document.querySelectorAll('.t-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+        document.getElementById('btn-higher').onclick = () => startTrade('HIGHER');
+        document.getElementById('btn-lower').onclick = () => startTrade('LOWER');
+        lucide.createIcons();
+    </script>
+</body>
+</html>

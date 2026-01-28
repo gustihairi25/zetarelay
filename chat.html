@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Reply Message</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #000; color: #eee; font-family: sans-serif; }
+        /* Bubble Admin (Anda) di Kanan */
+        .chat-bubble-admin { 
+            background: #f3ba2f; 
+            color: #000; 
+            align-self: flex-end; 
+            border-radius: 15px 15px 2px 15px; 
+        }
+        /* Bubble User di Kiri */
+        .chat-bubble-user { 
+            background: #222; 
+            color: #fff; 
+            align-self: flex-start; 
+            border-radius: 15px 15px 15px 2px; 
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+    <div class="p-5 border-b border-white/10 flex items-center gap-4 bg-black">
+        <button onclick="history.back()" class="text-[#f3ba2f] font-bold">← KEMBALI</button>
+        <div>
+            <h2 id="user-display" class="font-black italic text-[#f3ba2f] uppercase text-sm">MEMUAT...</h2>
+        </div>
+    </div>
+
+    <div id="chat-box" class="flex-1 overflow-y-auto p-6 flex flex-col gap-4 bg-[#050505]"></div>
+
+    <div class="p-6 bg-white/5 border-t border-white/10">
+        <div class="flex gap-3">
+            <input type="text" id="admin-msg" class="flex-1 bg-white/5 border border-white/10 rounded-2xl px-5 py-4 outline-none text-sm" placeholder="Ketik pesan balasan admin...">
+            <button onclick="sendReply()" class="bg-[#f3ba2f] text-black px-8 rounded-2xl font-black text-xs uppercase hover:scale-105 transition-all">Kirim</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, doc, onSnapshot, query, orderBy, addDoc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = { 
+            apiKey: "AIzaSyDrpBJTtankyLgimtOwuriFpiyuC5K10OI", 
+            authDomain: "studio-727777898-40aea.firebaseapp.com", 
+            projectId: "studio-727777898-40aea", 
+            appId: "1:351263967108:web:a0c01af41422903cc17fd1" 
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Ambil UID user yang dichat dari URL
+        const params = new URLSearchParams(window.location.search);
+        const activeUID = params.get('uid');
+        const userEmail = params.get('email');
+
+        if (!activeUID) {
+            alert("User ID tidak ditemukan!");
+            history.back();
+        }
+
+        document.getElementById('user-display').innerText = "Chat dengan: " + userEmail;
+
+        // LOAD PESAN SECARA REALTIME
+        const chatBox = document.getElementById('chat-box');
+        const q = query(collection(db, "users", activeUID, "chats"), orderBy("timestamp", "asc"));
+        
+        onSnapshot(q, (sn) => {
+            chatBox.innerHTML = '';
+            sn.forEach(mDoc => {
+                const m = mDoc.data();
+                const b = document.createElement('div');
+                
+                // Jika sender adalah 'admin', bubble di kanan. Jika 'user', bubble di kiri.
+                b.className = `max-w-[80%] p-4 text-sm ${m.sender === 'admin' ? 'chat-bubble-admin' : 'chat-bubble-user'}`;
+                b.innerHTML = `<p>${m.text}</p>`;
+                chatBox.appendChild(b);
+            });
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+
+        // FUNGSI KIRIM BALASAN (SEBAGAI ADMIN)
+        window.sendReply = async () => {
+            const input = document.getElementById('admin-msg');
+            const msg = input.value.trim();
+            if(!msg) return;
+
+            try {
+                // 1. Simpan pesan ke sub-koleksi chat user tersebut
+                await addDoc(collection(db, "users", activeUID, "chats"), {
+                    text: msg,
+                    sender: 'admin', // Identitas pengirim sebagai ADMIN
+                    timestamp: serverTimestamp()
+                });
+
+                // 2. Update status di dokumen user agar pesan terbaca
+                await updateDoc(doc(db, "users", activeUID), { 
+                    lastMsgBy: 'admin',
+                    lastRead: true 
+                });
+
+                input.value = '';
+                input.focus();
+            } catch (e) {
+                console.error("Error:", e);
+                alert("Gagal mengirim pesan.");
+            }
+        };
+
+        // Kirim dengan Enter
+        document.getElementById('admin-msg').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendReply();
+        });
+    </script>
+</body>
+</html>

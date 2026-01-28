@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Withdraw Dana | CryptoPro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #000; color: #fff; }
+        .glass { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(10px); }
+        .spinner { width: 20px; height: 20px; border: 3px solid rgba(0,0,0,0.2); border-radius: 50%; border-top-color: #000; animation: spin 0.8s linear infinite; display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        /* Style tambahan untuk rules */
+        .rules-box { background: rgba(255, 193, 7, 0.03); border: 1px dashed rgba(255, 193, 7, 0.2); }
+    </style>
+</head>
+<body class="p-6">
+
+    <div class="flex items-center mb-8">
+        <button onclick="window.location.href='dashboard.html'" class="p-2 bg-white/5 rounded-xl mr-4">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+        </button>
+        <h1 class="text-xl font-black uppercase italic tracking-tighter">Withdraw <span class="text-yellow-500">Dana</span></h1>
+    </div>                                            
+
+    <div class="bg-yellow-500 p-8 rounded-[32px] mb-8 shadow-2xl shadow-yellow-500/20">
+        <p class="text-[10px] font-bold text-black/60 uppercase tracking-[2px] mb-1">Saldo Tersedia</p>
+        <h2 id="display-balance" class="text-4xl font-black text-black tracking-tighter">Rp 0</h2>
+    </div>                                            
+
+    <div class="space-y-4">
+        <label class="text-[10px] font-bold text-gray-500 uppercase ml-2 block tracking-widest">Nominal Penarikan</label>
+        <input type="number" id="amount" placeholder="Min Rp 10.000" class="w-full bg-[#111] border border-white/5 p-5 rounded-2xl outline-none focus:border-yellow-500 text-lg font-bold text-white transition-all">   
+        
+        <div id="rekening-container" class="space-y-4">
+            <div class="flex justify-center py-4"><div class="w-5 h-5 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div></div>
+        </div>
+
+        <div class="bg-white/5 p-4 rounded-2xl">
+            <div class="flex justify-between text-[11px] mb-2"><span class="text-gray-500">Biaya Admin</span><span class="text-white font-bold">Rp 6.500</span></div>
+            <div class="flex justify-between text-[11px]"><span class="text-gray-500">Estimasi Waktu</span><span class="text-yellow-500 font-bold">5 - 30 Menit</span></div>
+        </div>                                        
+
+        <button onclick="handleWithdraw()" id="btn-wd" class="w-full bg-white text-black py-5 rounded-2xl font-black uppercase tracking-tighter active:scale-95 transition-all mt-4 flex items-center justify-center gap-3">
+            <div id="wdSpinner" class="spinner"></div>
+            <span id="wdBtnText">Konfirmasi Penarikan</span>
+        </button>
+
+        <div class="rules-box p-5 rounded-3xl mt-6">
+            <div class="flex items-center gap-2 mb-3">
+                <svg class="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                <h4 class="text-[10px] font-black uppercase tracking-widest text-yellow-500">Syarat & Kebijakan WD</h4>
+            </div>
+            <ul class="space-y-3">
+                <li class="flex gap-3">
+                    <span class="text-[9px] font-bold text-yellow-600">01</span>
+                    <p class="text-[9px] text-gray-400 leading-relaxed"><b class="text-gray-200 uppercase">Aktivasi Akun:</b> Penarikan hanya tersedia untuk akun yang telah menyelesaikan Verifikasi KYC dan memiliki riwayat Top-up pertama.</p>
+                </li>
+                <li class="flex gap-3">
+                    <span class="text-[9px] font-bold text-yellow-600">02</span>
+                    <p class="text-[9px] text-gray-400 leading-relaxed"><b class="text-gray-200 uppercase">Deteksi AML:</b> Jika akun baru (belum terverifikasi) menerima dana besar, sistem otomatis mendeteksi indikasi <span class="text-yellow-500">Pencucian Uang (Money Laundering)</span>.</p>
+                </li>
+                <li class="flex gap-3">
+                    <span class="text-[9px] font-bold text-yellow-600">03</span>
+                    <p class="text-[9px] text-gray-400 leading-relaxed"><b class="text-gray-200 uppercase">Verifikasi Legalitas:</b> Sebagai syarat jika pengguna tetap memaksa withdraw tanpa kyc , pengguna wajib melakukan Top-up sebesar <span class="text-white font-bold">50% dari total nominal transfer</span> yang diterima di akun baru tersebut.</p>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, onSnapshot, addDoc, updateDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrpBJTtankyLgimtOwuriFpiyuC5K10OI",
+            authDomain: "studio-727777898-40aea.firebaseapp.com",
+            projectId: "studio-727777898-40aea"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        let userBalance = 0, savedBankData = null, currentUser = null;
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                onSnapshot(doc(db, "users", user.uid), (snap) => {
+                    if (snap.exists()) {
+                        const data = snap.data();
+                        userBalance = data.balance || 0;
+                        document.getElementById('display-balance').innerText = "Rp " + userBalance.toLocaleString('id-ID');
+                        
+                        if (data.bank_name && data.bank_number) {
+                            savedBankData = { name: data.bank_name, number: data.bank_number, holder: data.bank_holder };
+                            renderLockedBank();
+                        } else {
+                            renderBankForm();
+                        }
+                    }
+                });
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+
+        function renderBankForm() {
+            document.getElementById('rekening-container').innerHTML = `
+                <select id="bank_name" class="w-full bg-[#111] border border-white/5 p-5 rounded-2xl text-white font-bold mb-2">
+                    <option value="BCA">BANK BCA</option>
+                    <option value="MANDIRI">BANK MANDIRI</option>
+                    <option value="BRI">BANK BRI</option>
+                    <option value="BNI">BANK BNI</option>
+                    <option value="DANA">DANA</option>
+                    <option value="OVO">OVO</option>
+                </select>
+                <input type="text" id="bank_number" placeholder="Nomor Rekening / HP" class="w-full bg-[#111] border border-white/5 p-5 rounded-2xl font-bold mb-2 text-white">
+                <input type="text" id="bank_holder" placeholder="Nama Pemilik Rekening" class="w-full bg-[#111] border border-white/5 p-5 rounded-2xl font-bold uppercase text-white">
+            `;
+        }
+
+        function renderLockedBank() {
+            document.getElementById('rekening-container').innerHTML = `
+                <div class="w-full bg-white/5 border border-yellow-500/20 p-6 rounded-[2rem]">
+                    <p class="text-[10px] font-black text-yellow-500 mb-1 uppercase italic">${savedBankData.name}</p>
+                    <p class="text-xl font-black tracking-widest text-white mb-1">${savedBankData.number}</p>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase italic">A/N ${savedBankData.holder}</p>
+                </div>
+            `;
+        }
+
+        window.handleWithdraw = async () => {
+            const amountVal = document.getElementById('amount').value;
+            const amount = parseInt(amountVal);
+            const btn = document.getElementById('btn-wd');
+            const spinner = document.getElementById('wdSpinner');
+            const txt = document.getElementById('wdBtnText');
+
+            if (!amount || amount < 10000) return alert("Minimal penarikan Rp 10.000");
+            if (amount > userBalance) return alert("Saldo tidak cukup!");
+
+            let bName, bNum, bHold;
+            if (!savedBankData) {
+                bName = document.getElementById('bank_name').value;
+                bNum = document.getElementById('bank_number').value;
+                bHold = document.getElementById('bank_holder').value;
+                if (!bNum || !bHold) return alert("Lengkapi data rekening!");
+            }
+
+            btn.disabled = true;
+            spinner.style.display = 'block';
+            txt.innerText = "PROCESSING...";
+
+            try {
+                if (!savedBankData) {
+                    await updateDoc(doc(db, "users", currentUser.uid), {
+                        bank_name: bName,
+                        bank_number: bNum,
+                        bank_holder: bHold.toUpperCase()
+                    });
+                }
+
+                const finalInfo = savedBankData ?
+                    `${savedBankData.name} | ${savedBankData.number} | ${savedBankData.holder}` :
+                    `${bName} | ${bNum} | ${bHold.toUpperCase()}`;
+
+                await addDoc(collection(db, "transactions"), {
+                    userId: currentUser.uid,
+                    amount,
+                    bankInfo: finalInfo,
+                    type: "WITHDRAW",
+                    status: "pending",
+                    timestamp: serverTimestamp()
+                });
+
+                await addDoc(collection(db, "users", currentUser.uid, "chats"), {
+                    sender: 'user',
+                    text: `🚨 WD REQUEST: Rp ${amount.toLocaleString()} ke ${finalInfo}`,
+                    timestamp: serverTimestamp()
+                });
+
+                await updateDoc(doc(db, "users", currentUser.uid), {
+                    lastRead: false,
+                    lastMsgBy: 'user'
+                });
+
+                setTimeout(() => {
+                    alert("Withdraw Berhasil Dikirim! Silakan tunggu proses validasi sesuai ketentuan verifikasi keamanan.");
+                    window.location.href = 'dashboard.html';
+                }, 3000);
+
+            } catch (e) {
+                alert("Error: " + e.message);
+                btn.disabled = false;
+                spinner.style.display = 'none';
+                txt.innerText = "Konfirmasi Penarikan";
+            }
+        };
+    </script>
+</body>
+</html>

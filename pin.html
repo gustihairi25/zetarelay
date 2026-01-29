@@ -2,109 +2,70 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Keamanan | ZetaChain</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="config.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
-        body { background: #050505; color: white; font-family: 'Plus Jakarta Sans', sans-serif; }
-        .pin-box { background: #111; border: 1px solid #222; color: #f3ba2f; text-align: center; font-size: 2.5rem; border-radius: 20px; padding: 15px; width: 100%; letter-spacing: 0.2em; outline: none; font-weight: 800; }
-        .pin-box:focus { border-color: #f3ba2f; }
+        body { background: #050505; color: white; font-family: sans-serif; }
+        .pin-box { background: #111; border: 1px solid #222; color: #f3ba2f; text-align: center; font-size: 2rem; border-radius: 20px; padding: 15px; width: 100%; letter-spacing: 0.3em; outline: none; }
         .gold-btn { background: linear-gradient(135deg, #f3ba2f 0%, #ffdb4d 100%); color: black; font-weight: 800; }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-6">
     <div class="w-full max-w-xs text-center">
-        <div class="w-16 h-16 bg-yellow-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-yellow-500/20">
-            <i class="fa-solid fa-shield-halved text-2xl text-[#f3ba2f]"></i>
-        </div>
-        <h2 id="title" class="text-xl font-black uppercase mb-1 italic">Keamanan <span class="text-[#f3ba2f]">PRO</span></h2>
-        <p id="desc" class="text-gray-500 text-[10px] uppercase mb-8 tracking-widest italic font-bold">Menghubungkan ke Server...</p>
+        <h2 id="title" class="text-xl font-black uppercase mb-2 italic">Keamanan <span class="text-[#f3ba2f]">PRO</span></h2>
+        <p id="desc" class="text-gray-500 text-[10px] uppercase mb-8">Verifikasi Identitas Terminal</p>
         
-        <input type="password" id="pinInput" maxlength="6" inputmode="numeric" placeholder="••••••" class="pin-box mb-6 shadow-2xl">
-        
-        <button id="btn-proses" class="w-full py-4 gold-btn rounded-2xl uppercase italic text-xs shadow-lg active:scale-95 transition-all">
-            Verifikasi Akses
-        </button>
+        <input type="password" id="pinInput" maxlength="6" inputmode="numeric" placeholder="••••••" class="pin-box mb-6">
+        <button onclick="proses()" id="btn-p" class="w-full py-4 gold-btn rounded-2xl uppercase italic transition-all">Konfirmasi</button>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        // Konfigurasi Firebase Anda
-        const firebaseConfig = {
+    <script>
+        var config = {
             apiKey: "AIzaSyDrpBJTtankyLgimtOwuriFpiyuC5K10OI",
             authDomain: "studio-727777898-40aea.firebaseapp.com",
             projectId: "studio-727777898-40aea",
             appId: "1:351263967108:web:a0c01af41422903cc17fd1"
         };
+        firebase.initializeApp(config);
+        var auth = firebase.auth();
+        var db = firebase.firestore();
+        var uid = "";
+        var pinDB = "";
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        
-        let uid = "";
-        let pinDB = "";
-
-        // Cek Sesi Login User
-        onAuthStateChanged(auth, async (user) => {
-            if (!user) {
-                window.location.href = "login.html"; // Jika belum login, tendang ke login.html
-            } else {
+        auth.onAuthStateChanged(function(user) {
+            if (!user) { window.location.href = "login.html"; } 
+            else {
                 uid = user.uid;
-                try {
-                    const docRef = doc(db, "users", uid);
-                    const docSnap = await getDoc(docRef);
-                    
-                    if (docSnap.exists()) {
-                        pinDB = docSnap.data().pin || "";
-                        document.getElementById('desc').innerText = pinDB === "" ? "Daftarkan PIN Baru Anda" : "Masukkan PIN Akses Terminal";
+                db.collection("users").doc(uid).get().then(function(doc) {
+                    if (doc.exists) {
+                        pinDB = doc.data().pin || "";
+                        document.getElementById('desc').innerText = pinDB === "" ? "Daftarkan PIN Baru Anda" : "Masukkan PIN Akses Anda";
                     }
-                } catch (e) {
-                    document.getElementById('desc').innerText = "Gagal Memuat Data";
-                }
+                });
             }
         });
 
-        // Logika Tombol Proses
-        document.getElementById('btn-proses').addEventListener('click', async () => {
-            const val = document.getElementById('pinInput').value;
-            const btn = document.getElementById('btn-proses');
+        function proses() {
+            var val = document.getElementById('pinInput').value;
+            if(val.length < 6) { alert("PIN harus 6 angka!"); return; }
 
-            if(val.length < 6) {
-                alert("PIN harus 6 angka!");
-                return;
-            }
-
-            btn.innerText = "Memproses...";
-            btn.disabled = true;
-
-            try {
-                if(pinDB === "") {
-                    // Jika PIN belum ada di database, daftarkan baru
-                    await updateDoc(doc(db, "users", uid), { pin: val });
+            if(pinDB === "") {
+                db.collection("users").doc(uid).update({ pin: val }).then(function() {
+                    window.location.href = "dashboard.html";
+                });
+            } else {
+                if(val === pinDB) {
                     window.location.href = "dashboard.html";
                 } else {
-                    // Jika sudah ada, cocokkan PIN
-                    if(val === pinDB) {
-                        window.location.href = "dashboard.html";
-                    } else {
-                        alert("PIN SALAH!");
-                        document.getElementById('pinInput').value = "";
-                        btn.innerText = "Verifikasi Akses";
-                        btn.disabled = false;
-                    }
+                    alert("PIN SALAH!");
+                    document.getElementById('pinInput').value = "";
                 }
-            } catch (error) {
-                alert("Terjadi kesalahan koneksi database.");
-                btn.disabled = false;
-                btn.innerText = "Verifikasi Akses";
             }
-        });
+        }
     </script>
 </body>
 </html>

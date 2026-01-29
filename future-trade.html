@@ -2,36 +2,34 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Future Trade</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trade | ZetaChain</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="config.js"></script>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        body { background: #000; color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         .bg-card { background: #0f0f0f; border: 1px solid #1a1a1a; }
     </style>
 </head>
 <body>
     <div class="p-4 border-b border-white/5 flex items-center justify-between bg-black">
-        <div class="flex items-center gap-3">
-            <button onclick="window.location.href='dashboard.html'" class="p-2 bg-card rounded-lg text-gray-400"><i data-lucide="arrow-left" class="w-4 h-4"></i></button>
-            <h1 class="font-black italic text-yellow-500 text-xs">BTC/USDT <span class="bg-yellow-500/20 px-2 py-0.5 rounded text-[8px]">LIVE</span></h1>
-        </div>
-        <i data-lucide="activity" class="text-green-500 w-4 h-4 animate-pulse"></i>
+        <button onclick="window.location.href='dashboard.html'"><i data-lucide="arrow-left"></i></button>
+        <h1 class="font-black italic text-yellow-500 text-xs">BTC/USDT <span class="bg-yellow-500/20 px-2 rounded text-[8px]">LIVE</span></h1>
+        <i data-lucide="activity" class="text-green-500 animate-pulse"></i>
     </div>
 
     <div class="flex-grow"><div id="tv_trade" class="h-full"></div></div>
 
     <div class="bg-card p-6 rounded-t-[3rem] border-t border-white/10 space-y-4">
-        <div class="flex justify-between text-[10px] font-black text-gray-500 uppercase italic">
-            <span>Portfolio: <span id="user-bal" class="text-white">Rp 0</span></span>
-            <span class="text-yellow-500">Margin: x100</span>
+        <div class="flex justify-between text-[10px] font-black text-gray-500 italic uppercase">
+            <span>Portfolio: <span id="user-bal">Rp 0</span></span>
+            <span class="text-yellow-500">Margin x100</span>
         </div>
-        <input type="number" id="trade-amt" placeholder="Nominal IDR" class="w-full bg-black border border-white/10 p-5 rounded-2xl outline-none focus:border-yellow-500 font-black italic">
-        <div class="grid grid-cols-2 gap-4 pb-4">
-            <button onclick="execute('BUY')" class="bg-green-600 py-5 rounded-2xl font-black italic text-sm active:scale-95 transition-all">LONG</button>
-            <button onclick="execute('SELL')" class="bg-red-600 py-5 rounded-2xl font-black italic text-sm active:scale-95 transition-all">SHORT</button>
+        <input type="number" id="trade-amt" placeholder="Nominal IDR" class="w-full bg-black border border-white/10 p-5 rounded-2xl outline-none font-black italic">
+        <div class="grid grid-cols-2 gap-4">
+            <button onclick="trade('BUY')" class="bg-green-600 py-5 rounded-2xl font-black italic text-sm">LONG</button>
+            <button onclick="trade('SELL')" class="bg-red-600 py-5 rounded-2xl font-black italic text-sm">SHORT</button>
         </div>
     </div>
 
@@ -50,23 +48,17 @@
             if(u) {
                 uid = u.uid;
                 onSnapshot(doc(db, "users", uid), (s) => {
-                    if(s.exists()){
-                        balance = s.data().balance || 0;
-                        document.getElementById('user-bal').innerText = "Rp " + balance.toLocaleString();
-                    }
+                    if(s.exists()){ balance = s.data().balance || 0; document.getElementById('user-bal').innerText = "Rp " + balance.toLocaleString(); }
                 });
-            } else window.location.href="login.html";
+            }
         });
 
-        window.execute = async (type) => {
+        window.trade = async (type) => {
             const amt = parseInt(document.getElementById('trade-amt').value);
-            if(!amt || amt < 50000) return alert("Min. Rp 50.000");
-            if(amt > balance) return alert("Saldo Kurang");
-            try {
-                await updateDoc(doc(db, "users", uid), { balance: balance - amt });
-                await addDoc(collection(db, "users", uid, "transactions"), { title: `Future ${type}`, amount: amt, status: "Berjalan", timestamp: serverTimestamp() });
-                alert("Trade Open!");
-            } catch(e) { alert("Error"); }
+            if(!amt || amt > balance) return alert("Saldo tidak cukup");
+            await updateDoc(doc(db, "users", uid), { balance: balance - amt });
+            await addDoc(collection(db, "users", uid, "transactions"), { title: `Future ${type}`, amount: amt, status: "Active", timestamp: serverTimestamp() });
+            alert("Order Success!");
         };
 
         new TradingView.widget({ "autosize": true, "symbol": "BINANCE:BTCUSDT", "interval": "1", "theme": "dark", "container_id": "tv_trade" });

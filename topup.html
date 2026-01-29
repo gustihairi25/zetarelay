@@ -7,12 +7,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap');
+        body { background: #000; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; }
         .bg-card { background: #0f0f0f; border: 1px solid #1a1a1a; }
         .gold-text { color: #f3ba2f; }
         .tab-active { background: #f3ba2f; color: #000; font-weight: 800; }
         .method-content { display: none; }
         .method-active { display: block; }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -45,9 +47,8 @@
                 <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Metode QRIS Rupiah</p>
                 <div class="bg-white p-3 rounded-3xl inline-block shadow-2xl">
                     <img id="qris-idr-img" src="" class="w-48 h-48 object-contain">
-                    <div id="qris-empty" class="hidden w-48 h-48 flex items-center justify-center text-black font-black text-[10px] uppercase">QRIS Belum Tersedia</div>
+                    <div id="qris-empty" class="hidden w-48 h-48 flex items-center justify-center text-black font-black text-[10px] uppercase p-4 text-center">QRIS Maintenance / Belum Tersedia</div>
                 </div>
-                <p class="text-[8px] text-gray-400 italic">Scan QR di atas menggunakan M-Bank atau E-Wallet Anda.</p>
             </div>
 
             <div id="c-crypto" class="method-content space-y-4">
@@ -57,14 +58,19 @@
                 </div>
                 <div class="bg-black/80 p-4 rounded-2xl border border-white/10 space-y-2">
                     <p class="text-[7px] text-gray-500 uppercase font-black">Official Address</p>
-                    <p id="addr-txt" class="text-[10px] font-mono break-all text-yellow-500 font-bold leading-tight"></p>
+                    <p id="addr-txt" class="text-[10px] font-mono break-all text-yellow-500 font-bold"></p>
                     <button onclick="copyA()" class="text-[9px] text-yellow-500 underline font-black uppercase">Salin Alamat</button>
                 </div>
             </div>
         </div>
 
         <div class="space-y-4">
-            <input type="number" id="amt" placeholder="Masukan Nominal Rp" class="w-full bg-card border border-white/10 p-5 rounded-2xl outline-none font-black italic text-yellow-500 text-lg">
+            <div class="relative">
+                <p class="text-[10px] font-black text-gray-500 uppercase mb-2 ml-2">Jumlah Deposit</p>
+                <input type="text" id="amt-display" placeholder="Rp 0" oninput="handleInput(this)" class="w-full bg-card border border-white/10 p-5 rounded-2xl outline-none font-black italic text-yellow-500 text-2xl">
+                <input type="hidden" id="amt-raw" value="0">
+            </div>
+            
             <button onclick="submitDep()" class="w-full py-5 bg-yellow-500 text-black font-black rounded-2xl uppercase italic shadow-xl shadow-yellow-500/20 active:scale-95 transition-all">Konfirmasi Deposit</button>
         </div>
     </div>
@@ -84,7 +90,19 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        // SYNC QRIS IDR DARI ADMIN
+        // --- FORMAT RUPIAH LOGIC ---
+        window.handleInput = (el) => {
+            let val = el.value.replace(/\D/g, ""); // Hapus semua karakter kecuali angka
+            if (val === "") {
+                el.value = "";
+                document.getElementById('amt-raw').value = 0;
+                return;
+            }
+            document.getElementById('amt-raw').value = val; // Simpan angka murni untuk database
+            el.value = "Rp " + new Intl.NumberFormat('id-ID').format(val); // Tampilkan dengan titik
+        };
+
+        // --- SYNC QRIS IDR DARI ADMIN ---
         onSnapshot(doc(db, "config", "payment"), (s) => {
             const img = document.getElementById('qris-idr-img');
             const empty = document.getElementById('qris-empty');
@@ -116,8 +134,13 @@
             document.getElementById('c-crypto').classList.toggle('method-active', m==='crypto');
             document.getElementById('b-bank').classList.toggle('tab-active', m==='bank');
             document.getElementById('b-crypto').classList.toggle('tab-active', m==='crypto');
-            if(m==='bank') document.getElementById('b-crypto').classList.add('text-gray-500');
-            else document.getElementById('b-bank').classList.add('text-gray-500');
+            if(m==='bank') {
+                document.getElementById('b-crypto').classList.add('text-gray-500');
+                document.getElementById('b-bank').classList.remove('text-gray-500');
+            } else {
+                document.getElementById('b-bank').classList.add('text-gray-500');
+                document.getElementById('b-crypto').classList.remove('text-gray-500');
+            }
         };
 
         window.updateUI = () => {
@@ -130,14 +153,22 @@
         window.copyA = () => { navigator.clipboard.writeText(document.getElementById('addr-txt').innerText); alert("Alamat Disalin!"); };
 
         window.submitDep = async () => {
-            const amount = document.getElementById('amt').value;
-            if(!amount || amount < 50000) return alert("Minimal Rp 50.000");
-            await addDoc(collection(db, "users", auth.currentUser.uid, "transactions"), {
-                title: "Deposit " + document.getElementById('coin-select').value,
-                amount: parseInt(amount), status: "Pending", timestamp: serverTimestamp()
-            });
-            alert("Terkirim! Tunggu konfirmasi admin.");
-            window.location.href = "dashboard.html";
+            const amount = document.getElementById('amt-raw').value;
+            const coin = document.getElementById('coin-select').value;
+            if(!amount || amount < 50000) return alert("Minimal Deposit Rp 50.000");
+            
+            try {
+                await addDoc(collection(db, "users", auth.currentUser.uid, "transactions"), {
+                    title: "Deposit " + coin,
+                    amount: parseInt(amount), 
+                    status: "Pending", 
+                    timestamp: serverTimestamp()
+                });
+                alert("Deposit Berhasil Diajukan! Saldo akan masuk setelah diverifikasi.");
+                window.location.href = "dashboard.html";
+            } catch (e) {
+                alert("Gagal. Pastikan Anda sudah login.");
+            }
         };
 
         updateUI();

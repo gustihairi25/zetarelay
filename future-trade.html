@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Trade | ZetaChain</title>
+    <title>ZetaChain Pro Trade</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="config.js"></script>
@@ -21,24 +21,24 @@
             <button onclick="window.location.href='dashboard.html'" class="p-2 bg-card rounded-lg text-gray-400">
                 <i data-lucide="arrow-left" class="w-4 h-4"></i>
             </button>
-            <h1 class="font-black italic gold-text">BTC/USDT <span class="text-[8px] bg-yellow-500/20 px-2 py-1 rounded">LIVE</span></h1>
+            <h1 class="font-black italic gold-text uppercase text-xs">BTC/USDT <span class="ml-1 text-[8px] bg-yellow-500/20 px-2 py-0.5 rounded text-yellow-500">MARKET</span></h1>
         </div>
-        <button onclick="window.location.href='livechat.html'" class="p-2 text-yellow-500"><i data-lucide="headset" class="w-5 h-5"></i></button>
+        <button onclick="window.location.href='livechat.html'" class="text-yellow-500"><i data-lucide="headphones" class="w-5 h-5"></i></button>
     </div>
 
     <div class="flex-grow"><div id="tv_trade" class="h-full"></div></div>
 
-    <div class="bg-card p-6 rounded-t-[3rem] border-t border-white/10 space-y-4">
-        <div class="flex justify-between text-[10px] font-black text-gray-500 uppercase italic px-2">
-            <span>Portfolio: <span id="user-idr" class="text-white">Rp 0</span></span>
-            <span class="text-yellow-500">Node: Active</span>
+    <div class="bg-card p-6 rounded-t-[3rem] border-t border-white/10 shadow-2xl space-y-5">
+        <div class="flex justify-between items-center text-[10px] font-black text-gray-500 uppercase italic px-2">
+            <span>Saldo Aktif: <span id="user-bal" class="text-white">Rp 0</span></span>
+            <button onclick="window.location.href='pin.html'" class="text-yellow-500 underline decoration-dotted">Pin Security</button>
         </div>
 
-        <input type="number" id="trade-amt" placeholder="Nominal IDR" class="w-full bg-black border border-white/10 p-5 rounded-2xl outline-none focus:border-yellow-500 font-black italic">
+        <input type="number" id="trade-amt" placeholder="Jumlah Investasi (IDR)" class="w-full bg-black border border-white/10 p-5 rounded-2xl outline-none focus:border-yellow-500 font-black italic text-sm">
 
         <div class="grid grid-cols-2 gap-4">
-            <button onclick="trade('BUY')" class="bg-green-600 py-5 rounded-2xl font-black italic active:scale-95 transition-all">LONG</button>
-            <button onclick="trade('SELL')" class="bg-red-600 py-5 rounded-2xl font-black italic active:scale-95 transition-all">SHORT</button>
+            <button onclick="executeTrade('BUY')" class="bg-green-600 hover:bg-green-500 py-5 rounded-2xl font-black uppercase italic shadow-lg active:scale-95 transition-all text-sm">BUY / LONG</button>
+            <button onclick="executeTrade('SELL')" class="bg-red-600 hover:bg-red-500 py-5 rounded-2xl font-black uppercase italic shadow-lg active:scale-95 transition-all text-sm">SELL / SHORT</button>
         </div>
     </div>
 
@@ -58,9 +58,8 @@
                 uid = u.uid;
                 onSnapshot(doc(db, "users", uid), (s) => {
                     if(s.exists()){
-                        // Disini kita menggunakan field 'balance' sebagai saldo trading utama
                         balance = s.data().balance || 0;
-                        document.getElementById('user-idr').innerText = "Rp " + balance.toLocaleString('id-ID');
+                        document.getElementById('user-bal').innerText = "Rp " + balance.toLocaleString('id-ID');
                     }
                 });
             } else window.location.href="login.html";
@@ -69,22 +68,22 @@
         new TradingView.widget({
             "autosize": true, "symbol": "BINANCE:BTCUSDT", "interval": "1",
             "theme": "dark", "style": "1", "container_id": "tv_trade",
-            "hide_top_toolbar": true
+            "hide_top_toolbar": true, "locale": "id"
         });
 
-        window.trade = async (type) => {
+        window.executeTrade = async (type) => {
             const amt = parseInt(document.getElementById('trade-amt').value);
             if(!amt || amt < 50000) return alert("Minimal Rp 50.000");
-            if(amt > balance) return alert("Saldo Tidak Cukup");
+            if(amt > balance) return alert("Saldo Anda tidak mencukupi!");
 
             try {
                 await updateDoc(doc(db, "users", uid), { balance: balance - amt });
                 await addDoc(collection(db, "users", uid, "transactions"), {
-                    title: `Future Trade ${type}`, amount: amt, status: "Berjalan", timestamp: serverTimestamp()
+                    title: `Future Trade ${type}`, amount: amt, status: "Berjalan", type: "Trade", timestamp: serverTimestamp()
                 });
-                alert("Trade Berhasil!");
+                alert("Kontrak Berhasil Dibuka!");
                 window.location.href = "dashboard.html";
-            } catch(e) { alert("Error database."); }
+            } catch(e) { alert("Sinyal terminal terputus."); }
         };
         lucide.createIcons();
     </script>

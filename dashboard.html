@@ -20,7 +20,7 @@
         .nav-item.active { color: #f3ba2f; }
         
         #chartContainer { width: 100%; height: 230px; position: relative; background: #000; margin: 10px 0; overflow: hidden; }
-        #live-tag { position: absolute; right: 0; padding: 2px 8px; border-radius: 4px 0 0 4px; font-weight: 900; font-size: 9px; color: #000; z-index: 20; }
+        #live-tag { position: absolute; right: 0; padding: 2px 8px; border-radius: 4px 0 0 4px; font-weight: 900; font-size: 9px; color: #000; z-index: 20; transition: all 0.2s; }
         .coin-btn { transition: all 0.3s; flex-shrink: 0; }
         .coin-btn.active { background: #f3ba2f; color: #000; border-color: #f3ba2f; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -42,21 +42,21 @@
             <button onclick="location.href='setting-akun.html'" class="text-gray-500"><i class="fa-solid fa-gear text-lg"></i></button>
         </div>
 
-        <div class="px-6 space-y-3">
-            <div class="bg-card p-5 rounded-[1.5rem] border-l-4 border-yellow-500">
+        <div class="px-6">
+            <div class="bg-card p-5 rounded-[1.5rem] border-l-4 border-yellow-500 shadow-xl">
                 <p class="text-[8px] text-gray-500 font-black uppercase tracking-widest">Saldo Akun Utama</p>
                 <h3 id="u-balance-akun" class="text-2xl font-black italic tracking-tighter">Rp 0</h3>
             </div>
         </div>
 
         <div class="px-6 mt-6">
-            <p class="text-[8px] text-gray-500 font-black uppercase mb-3 tracking-[3px]">Pilih Market</p>
+            <p class="text-[8px] text-gray-500 font-black uppercase mb-3 tracking-[3px]">Pilih Bursa Market</p>
             <div id="coin-list" class="flex gap-2 overflow-x-auto no-scrollbar pb-2"></div>
         </div>
 
         <div id="chartContainer">
             <div class="absolute top-2 left-6 z-10">
-                <h4 id="active-coin-name" class="text-lg font-black italic gold-text tracking-tighter">BTC/USDT</h4>
+                <h4 id="active-coin-name" class="text-lg font-black italic gold-text tracking-tighter uppercase">BTC/USDT</h4>
             </div>
             <canvas id="mainChart"></canvas>
             <div id="live-tag">Rp 0</div>
@@ -98,7 +98,6 @@
         import { getFirestore, doc, onSnapshot, collection, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // Inisialisasi Firebase
         const app = initializeApp(APP_CONFIG.firebase);
         const db = getFirestore(app);
         const auth = getAuth(app);
@@ -107,7 +106,13 @@
         let currentCoin = localStorage.getItem('selectedCoin') || "BTC";
         document.getElementById('active-coin-name').innerText = currentCoin + "/USDT";
 
-        // Render Button Koin
+        // HARGA AWAL REALISTIS (IDR)
+        const startPrices = {
+            "BTC": 1450000000, "ETH": 42000000, "BNB": 9500000,
+            "SOL": 2100000, "TRX": 2500, "MATIC": 8000
+        };
+
+        // Render Tombol Koin
         const coinList = document.getElementById('coin-list');
         coins.forEach(c => {
             const btn = document.createElement('button');
@@ -117,13 +122,13 @@
             coinList.appendChild(btn);
         });
 
-        // Real-time Data User & Transaksi
+        // Firebase Sync (User & Transaksi)
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 onSnapshot(doc(db, "users", user.uid), (snap) => {
                     const d = snap.data();
                     if(d) {
-                        document.getElementById('u-email').innerText = d.email.split('@')[0].toUpperCase();
+                        document.getElementById('u-email').innerText = (d.email || "").split('@')[0].toUpperCase();
                         document.getElementById('u-balance-akun').innerText = "Rp " + (d.balance || 0).toLocaleString('id-ID');
                         document.getElementById('u-status-kyc').innerText = (d.kyc_status || 'UNVERIFIED') + " TRADER";
                     }
@@ -135,21 +140,22 @@
                     qs.forEach(doc => {
                         const t = doc.data();
                         container.innerHTML += `<div class="bg-card p-4 rounded-2xl flex justify-between border border-white/5 text-[9px]">
-                            <span class="font-bold">${t.title}</span>
-                            <span class="gold-text">Rp ${t.amount.toLocaleString('id-ID')}</span>
+                            <span class="font-bold">${t.title || 'Transaksi'}</span>
+                            <span class="gold-text">Rp ${(t.amount || 0).toLocaleString('id-ID')}</span>
                         </div>`;
                     });
                 });
             } else { location.href = 'login.html'; }
         });
 
-        // --- ENGINE GRAFIK ---
+        // --- ENGINE GRAFIK AGRESIF (SINKRON DENGAN FUTURE-TRADE) ---
         const canvas = document.getElementById('mainChart');
         const ctx = canvas.getContext('2d');
         const tag = document.getElementById('live-tag');
         
-        let basePrice = currentCoin === "BTC" ? 900000000 : 500000;
-        let prices = Array.from({length: 50}, () => basePrice + (Math.random()-0.5)*10000);
+        // Ambil data harga lama dari Storage atau buat baru
+        let prices = JSON.parse(localStorage.getItem(`prices_${currentCoin}`)) || 
+                     Array.from({length: 50}, () => startPrices[currentCoin] + (Math.random()-0.5)*5000);
 
         function draw() {
             if(!canvas.offsetWidth) return;
@@ -163,9 +169,15 @@
             const isBull = prices[prices.length-1] >= prices[prices.length-2];
             const color = isBull ? "#22c55e" : "#ef4444";
 
+            // Gradient Background
+            const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            grad.addColorStop(0, isBull ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)');
+            grad.addColorStop(1, 'transparent');
+
             ctx.beginPath();
             ctx.strokeStyle = color;
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 3;
+            ctx.lineJoin = "round";
             prices.forEach((p, i) => {
                 const x = i * stepX;
                 const y = canvas.height - ((p - min) / (max - min) * canvas.height);
@@ -177,11 +189,23 @@
                 }
             });
             ctx.stroke();
+
+            // Fill Area Bawah Grafik
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.lineTo(0, canvas.height);
+            ctx.fillStyle = grad;
+            ctx.fill();
+
+            // Simpan ke storage agar future-trade.html bisa baca harga yang sama
+            localStorage.setItem(`prices_${currentCoin}`, JSON.stringify(prices));
         }
 
+        // Live Ticking (Gerakan Agresif)
         setInterval(() => {
             let last = prices[prices.length-1];
-            prices.push(last + (Math.random()-0.5)*5000);
+            // Pergerakan tajam: 0.2% dari harga terakhir
+            let volatility = last * 0.002;
+            prices.push(last + (Math.random()-0.5) * volatility);
             prices.shift();
             draw();
         }, 1000);

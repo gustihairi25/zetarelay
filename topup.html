@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Topup | ZetaChain</title>
+    <title>Deposit | ZetaChain</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap');
-        body { background: #000; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background: #000; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; overflow-x: hidden; }
         .bg-card { background: #0f0f0f; border: 1px solid #1a1a1a; }
         .gold-text { color: #f3ba2f; }
         .tab-active { background: #f3ba2f; color: #000; font-weight: 800; }
@@ -21,34 +21,41 @@
     <div class="max-w-md mx-auto space-y-6">
         <header class="flex items-center gap-4">
             <button onclick="window.location.href='dashboard.html'" class="p-2 bg-card rounded-xl text-gray-400"><i data-lucide="arrow-left"></i></button>
-            <h1 class="text-xl font-black italic gold-text uppercase tracking-tighter">Deposit</h1>
+            <h1 class="text-xl font-black italic gold-text uppercase tracking-tighter">Deposit Center</h1>
         </header>
 
-        <select id="coin-select" onchange="updateUI()" class="w-full bg-card border border-white/10 p-5 rounded-2xl outline-none font-bold text-yellow-500 appearance-none">
-            <option value="BTC">Bitcoin (BTC)</option>
-            <option value="ETH">Ethereum (ETH)</option>
-            <option value="SOL">Solana (SOL)</option>
-            <option value="TRX">Tron (TRX)</option>
-            <option value="LINEA">Linea (LINEA)</option>
-            <option value="ARB">Arbitrum (ARB)</option>
-            <option value="BNB">BNB Chain (BNB)</option>
-            <option value="BASE">Base (BASE)</option>
-            <option value="OP">Optimism (OP)</option>
-            <option value="MATIC">Polygon (MATIC)</option>
-        </select>
-
-        <div class="flex bg-card p-1 rounded-2xl border border-white/5">
-            <button onclick="sm('bank')" id="b-bank" class="flex-1 py-3 rounded-xl text-[10px] uppercase tab-active transition-all">Via Saldo Bank/QRIS</button>
-            <button onclick="sm('crypto')" id="b-crypto" class="flex-1 py-3 rounded-xl text-[10px] uppercase text-gray-500 transition-all">Via Crypto Wallet</button>
+        <div class="space-y-2">
+            <p class="text-[10px] font-black text-gray-500 uppercase ml-2">Pilih Aset</p>
+            <select id="coin-select" onchange="updateUI()" class="w-full bg-card border border-white/10 p-5 rounded-2xl outline-none font-bold text-yellow-500 appearance-none">
+                <option value="BTC">Bitcoin (BTC)</option>
+                <option value="ETH">Ethereum (ETH)</option>
+                <option value="SOL">Solana (SOL)</option>
+                <option value="TRX">Tron (TRX)</option>
+                <option value="LINEA">Linea</option>
+                <option value="ARB">Arbitrum (ARB)</option>
+                <option value="BNB">BNB Chain (BNB)</option>
+                <option value="BASE">Base</option>
+                <option value="OP">Optimism (OP)</option>
+                <option value="MATIC">Polygon (MATIC)</option>
+            </select>
         </div>
 
-        <div class="bg-card p-8 rounded-[2.5rem] border border-white/5 text-center space-y-6">
+        <div class="flex bg-card p-1 rounded-2xl border border-white/5">
+            <button onclick="sm('bank')" id="b-bank" class="flex-1 py-3 rounded-xl text-[10px] uppercase tab-active transition-all">IDR (Bank/QRIS)</button>
+            <button onclick="sm('crypto')" id="b-crypto" class="flex-1 py-3 rounded-xl text-[10px] uppercase text-gray-500 transition-all">Crypto Wallet</button>
+        </div>
+
+        <div class="bg-card p-6 rounded-[2.5rem] border border-white/5 text-center space-y-6">
             <div id="c-bank" class="method-content method-active space-y-4">
-                <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Metode QRIS Rupiah</p>
-                <div class="bg-white p-3 rounded-3xl inline-block shadow-2xl">
-                    <img id="qris-idr-img" src="" class="w-48 h-48 object-contain">
-                    <div id="qris-empty" class="hidden w-48 h-48 flex items-center justify-center text-black font-black text-[10px] uppercase p-4 text-center">QRIS Maintenance / Belum Tersedia</div>
+                <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Metode Pembayaran IDR</p>
+                <div class="bg-white p-3 rounded-3xl inline-block shadow-2xl relative overflow-hidden">
+                    <img id="qris-idr-img" src="" class="w-48 h-48 object-contain hidden">
+                    <div id="qris-waiting" class="w-48 h-48 flex flex-col items-center justify-center text-black p-4">
+                        <i data-lucide="loader-2" class="w-8 h-8 animate-spin mb-2"></i>
+                        <p class="font-black text-[9px] uppercase">Menunggu Instruksi Admin...</p>
+                    </div>
                 </div>
+                <p class="text-[10px] text-gray-400 px-4">QRIS akan muncul otomatis setelah Admin memproses permintaan deposit Anda.</p>
             </div>
 
             <div id="c-crypto" class="method-content space-y-4">
@@ -59,7 +66,9 @@
                 <div class="bg-black/80 p-4 rounded-2xl border border-white/10 space-y-2">
                     <p class="text-[7px] text-gray-500 uppercase font-black">Official Address</p>
                     <p id="addr-txt" class="text-[10px] font-mono break-all text-yellow-500 font-bold"></p>
-                    <button onclick="copyA()" class="text-[9px] text-yellow-500 underline font-black uppercase">Salin Alamat</button>
+                    <button onclick="copyA()" class="flex items-center gap-2 mx-auto text-[9px] text-yellow-500 font-black uppercase mt-2">
+                        <i data-lucide="copy" class="w-3 h-3"></i> Salin Alamat
+                    </button>
                 </div>
             </div>
         </div>
@@ -90,43 +99,40 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        // --- FORMAT RUPIAH LOGIC ---
+        // FORMAT RUPIAH
         window.handleInput = (el) => {
-            let val = el.value.replace(/\D/g, ""); // Hapus semua karakter kecuali angka
-            if (val === "") {
-                el.value = "";
-                document.getElementById('amt-raw').value = 0;
-                return;
-            }
-            document.getElementById('amt-raw').value = val; // Simpan angka murni untuk database
-            el.value = "Rp " + new Intl.NumberFormat('id-ID').format(val); // Tampilkan dengan titik
+            let val = el.value.replace(/\D/g, "");
+            if (val === "") { el.value = ""; document.getElementById('amt-raw').value = 0; return; }
+            document.getElementById('amt-raw').value = val;
+            el.value = "Rp " + new Intl.NumberFormat('id-ID').format(val);
         };
 
-        // --- SYNC QRIS IDR DARI ADMIN ---
+        // SYNC QRIS IDR DARI DATABASE (CONFIG)
         onSnapshot(doc(db, "config", "payment"), (s) => {
             const img = document.getElementById('qris-idr-img');
-            const empty = document.getElementById('qris-empty');
+            const wait = document.getElementById('qris-waiting');
             if(s.exists() && s.data().qris_idr) {
                 img.src = s.data().qris_idr;
                 img.classList.remove('hidden');
-                empty.classList.add('hidden');
+                wait.classList.add('hidden');
             } else {
                 img.classList.add('hidden');
-                empty.classList.remove('hidden');
+                wait.classList.remove('hidden');
             }
         });
 
+        // DATA CRYPTO SESUAI GAMBAR .JPG ANDA
         const DATA = {
-            "BTC": { addr: "bc1q6al6pkdkwt7vpgujwr7fvnjxvkdaet64q5rvnj", net: "Bitcoin Mainnet", img: "img/q-btc.jpg" },
-            "ETH": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", net: "ERC20", img: "img/q-eth.jpg" },
-            "SOL": { addr: "5iShtcHj9sAGXoRwbCb5f51ew9B3Rjtn9yM5CXABLgi2", net: "Solana", img: "img/q-sol.jpg" },
-            "TRX": { addr: "TBgjd7vYBzFzoUkhtmYtFQvTxhdjcF36E2", net: "TRC20", img: "img/q-trx.jpg" },
-            "LINEA": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", net: "Linea Mainnet", img: "img/q-linea.jpg" },
-            "ARB": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", net: "Arbitrum One", img: "img/q-arb.jpg" },
-            "BNB": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", net: "BEP20 (BSC)", img: "img/q-bnb.jpg" },
-            "BASE": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", net: "Base", img: "img/q-base.jpg" },
-            "OP": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", net: "Optimism", img: "img/q-op.jpg" },
-            "MATIC": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", net: "Polygon", img: "img/q-matic.jpg" }
+            "BTC": { addr: "bc1q6al6pkdkwt7vpgujwr7fvnjxvkdaet64q5rvnj", net: "Bitcoin Mainnet", img: "qris-btc.jpg" },
+            "ETH": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", net: "ERC20", img: "qris-eth.jpg" },
+            "SOL": { addr: "5iShtcHj9sAGXoRwbCb5f51ew9B3Rjtn9yM5CXABLgi2", net: "Solana", img: "qris-sol.jpg" },
+            "TRX": { addr: "TBgjd7vYBzFzoUkhtmYtFQvTxhdjcF36E2", net: "TRC20", img: "qris-trx.jpg" },
+            "LINEA": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", net: "Linea Mainnet", img: "qris-linea.jpg" },
+            "ARB": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", net: "Arbitrum One", img: "qris-arb.jpg" },
+            "BNB": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", net: "BEP20 (BSC)", img: "qris-bnb.jpg" },
+            "BASE": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", net: "Base", img: "qris-base.jpg" },
+            "OP": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", net: "Optimism", img: "qris-op.jpg" },
+            "MATIC": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", net: "Polygon", img: "qris-matic.jpg" }
         };
 
         window.sm = (m) => {
@@ -134,12 +140,15 @@
             document.getElementById('c-crypto').classList.toggle('method-active', m==='crypto');
             document.getElementById('b-bank').classList.toggle('tab-active', m==='bank');
             document.getElementById('b-crypto').classList.toggle('tab-active', m==='crypto');
+            
+            const btnBank = document.getElementById('b-bank');
+            const btnCrypto = document.getElementById('b-crypto');
             if(m==='bank') {
-                document.getElementById('b-crypto').classList.add('text-gray-500');
-                document.getElementById('b-bank').classList.remove('text-gray-500');
+                btnCrypto.classList.add('text-gray-500');
+                btnBank.classList.remove('text-gray-500');
             } else {
-                document.getElementById('b-bank').classList.add('text-gray-500');
-                document.getElementById('b-crypto').classList.remove('text-gray-500');
+                btnBank.classList.add('text-gray-500');
+                btnCrypto.classList.remove('text-gray-500');
             }
         };
 
@@ -147,27 +156,37 @@
             const c = document.getElementById('coin-select').value;
             document.getElementById('addr-txt').innerText = DATA[c].addr;
             document.getElementById('net-name').innerText = DATA[c].net;
-            document.getElementById('qris-token-img').src = DATA[c].img;
+            // Mengambil gambar dari folder img/
+            document.getElementById('qris-token-img').src = "img/" + DATA[c].img;
         };
 
-        window.copyA = () => { navigator.clipboard.writeText(document.getElementById('addr-txt').innerText); alert("Alamat Disalin!"); };
+        window.copyA = () => { 
+            navigator.clipboard.writeText(document.getElementById('addr-txt').innerText); 
+            alert("Alamat Berhasil Disalin!"); 
+        };
 
         window.submitDep = async () => {
             const amount = document.getElementById('amt-raw').value;
             const coin = document.getElementById('coin-select').value;
+            const method = document.getElementById('b-bank').classList.contains('tab-active') ? 'IDR/Bank' : 'Crypto';
+            
             if(!amount || amount < 50000) return alert("Minimal Deposit Rp 50.000");
             
             try {
                 await addDoc(collection(db, "users", auth.currentUser.uid, "transactions"), {
-                    title: "Deposit " + coin,
+                    title: "Deposit " + coin + " (" + method + ")",
                     amount: parseInt(amount), 
                     status: "Pending", 
                     timestamp: serverTimestamp()
                 });
-                alert("Deposit Berhasil Diajukan! Saldo akan masuk setelah diverifikasi.");
-                window.location.href = "dashboard.html";
+                alert("Permintaan Deposit Terkirim! Silahkan lakukan pembayaran sesuai instruksi.");
+                if(method === 'IDR/Bank') {
+                    alert("Mohon tunggu sebentar, QRIS sedang disiapkan oleh Admin.");
+                } else {
+                    window.location.href = "dashboard.html";
+                }
             } catch (e) {
-                alert("Gagal. Pastikan Anda sudah login.");
+                alert("Gagal mengirim permintaan. Pastikan Anda sudah masuk.");
             }
         };
 

@@ -1,6 +1,4 @@
-// Konfigurasi Terpusat ZetaChain Pro Terminal
 const APP_CONFIG = {
-    // Data Firebase (Pastikan sesuai dengan Project Settings di Firebase Console)
     firebase: {
         apiKey: "AIzaSyDrpBJTtankyLgimtOwuriFpiyuC5K10OI",
         authDomain: "studio-727777898-40aea.firebaseapp.com",
@@ -9,25 +7,16 @@ const APP_CONFIG = {
         messagingSenderId: "351263967108",
         appId: "1:351263967108:web:a0c01af41422903cc17fd1"
     },
-
-    // Daftar Alamat Wallet Resmi (Update Berdasarkan 54568.jpg)
     depositAddresses: {
-        "BTC": "bc1q6al6pkdkwt7vpgujwr7fvnjxvkdaet64q5rvnj",
-        "ETH": "0x4c51175cdf9b6311ce152694f146d29be8911432",
-        "SOL": "5iShtcHj9sAGXoRwbCb5f51ew9B3Rjtn9yM5CXABLgi2",
-        "TRX": "TBgjd7vYBzFzoUkhtmYtFQvTxhdjcF36E2",
-        "BNB": "0x4c51175cdf9b6311ce152694f146d29be8911432",
-        "MATIC": "0x4c51175cdf9b6311ce152694f146d29be8911432",
-        "LINEA": "0x4c51175cdf9b6311ce152694f146d29be8911432",
-        "ARB": "0x4c51175cdf9b6311ce152694f146d29be8911432",
-        "BASE": "0x4c51175cdf9b6311ce152694f146d29be8911432",
-        "OP": "0x4c51175cdf9b6311ce152694f146d29be8911432"
-    },
-
-    // Pengaturan Trading
-    tradeSettings: {
-        minDeposit: 50000, // Minimal Rp 50.000
-        profitPercentage: 85, // Profit 85% untuk Future Trade
-        durations: [30, 60] // Pilihan durasi trade dalam detik
+        "BTC": { addr: "bc1q6al6pkdkwt7vpgujwr7fvnjxvkdaet64q5rvnj", qris: "img/qris-btc.jpg", rate: 1045000000 },
+        "ETH": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", qris: "img/qris-eth.jpg", rate: 42000000 },
+        "SOL": { addr: "5iShtcHj9sAGXoRwbCb5f51ew9B3Rjtn9yM5CXABLgi2", qris: "img/qris-sol.jpg", rate: 2800000 },
+        "TRX": { addr: "TBgjd7vYBzFzoUkhtmYtFQvTxhdjcF36E2", qris: "img/qris-trx.jpg", rate: 2400 },
+        "BNB": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", qris: "img/qris-bnb.jpg", rate: 9200000 },
+        "MATIC": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", qris: "img/qris-matic.jpg", rate: 9000 },
+        "LINEA": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", qris: "img/qris-linea.jpg", rate: 42000000 },
+        "ARB": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", qris: "img/qris-arb.jpg", rate: 12000 },
+        "BASE": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", qris: "img/qris-base.jpg", rate: 42000000 },
+        "OP": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", qris: "img/qris-op.jpg", rate: 25000 }
     }
 };

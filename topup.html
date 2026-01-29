@@ -3,107 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ZetaChain Pro | Deposit Center</title>
+    <title>Setoran Aset | ZetaChain</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="config.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
-        body { background-color: #000; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; }
-        .bg-card { background: #0f0f0f; border: 1px solid #1a1a1a; }
+        body { background-color: #050505; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .deposit-card { background: linear-gradient(145deg, #0f0f0f, #151515); border: 1px solid #1a1a1a; }
         .gold-text { color: #f3ba2f; }
         .gold-bg { background: #f3ba2f; color: #000; }
     </style>
 </head>
-<body class="p-6">
+<body class="p-6 flex flex-col min-h-screen">
 
-    <div class="flex items-center gap-4 mb-8">
-        <button onclick="location.href='dashboard.html'" class="w-10 h-10 bg-card rounded-xl flex items-center justify-center border border-white/5 active:scale-90 transition-all">
-            <i class="fa-solid fa-chevron-left text-gray-400"></i>
+    <div class="flex items-center gap-4 mb-10">
+        <button onclick="location.href='dashboard.html'" class="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center">
+            <i class="fa-solid fa-arrow-left text-gray-400"></i>
         </button>
-        <h1 class="text-xl font-black italic gold-text uppercase italic">Setor Aset</h1>
+        <div>
+            <h1 class="text-lg font-black uppercase tracking-tighter italic">Halaman Setoran</h1>
+            <p class="text-[8px] text-gray-500 font-bold uppercase tracking-widest">Kirim koin ke alamat di bawah</p>
+        </div>
     </div>
 
-    <div class="bg-card p-6 rounded-[2.5rem] border border-white/5 mb-6 text-center shadow-2xl">
-        <p class="text-[9px] text-gray-500 font-black uppercase tracking-[3px] mb-4">Metode Setoran: <span id="coin-label" class="gold-text">BTC</span></p>
-        
-        <div class="bg-white p-4 rounded-3xl inline-block mb-4 shadow-[0_0_30px_rgba(243,186,47,0.15)]">
-            <div id="qrcode"></div>
+    <div class="deposit-card p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
+        <div class="absolute top-0 right-0 p-4">
+            <span id="network-badge" class="px-3 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded-full text-[7px] font-black gold-text uppercase">Jaringan BTC</span>
         </div>
 
-        <div class="bg-black/60 p-4 rounded-2xl border border-white/5 mb-6 text-left">
-            <p class="text-[8px] text-gray-500 font-black uppercase mb-1">Alamat Dompet <span id="network-info">Bitcoin</span></p>
-            <p id="deposit-address" class="text-[10px] font-mono break-all text-white leading-relaxed"></p>
-            <button onclick="copyAddr()" class="w-full mt-3 py-2 bg-white/5 rounded-lg text-[9px] font-black gold-text uppercase border border-yellow-500/20 active:bg-yellow-500/10">
-                <i class="fa-solid fa-copy mr-1"></i> Salin Alamat
-            </button>
-        </div>
-
-        <div class="space-y-4">
-            <div class="text-left">
-                <label class="text-[8px] text-gray-500 font-black uppercase ml-1 mb-1 block">Jumlah yang dikirim</label>
-                <input id="input-amount" type="number" placeholder="0.00" class="w-full bg-black border border-white/10 rounded-xl p-4 text-sm font-bold outline-none focus:border-yellow-500 transition-all">
+        <div class="text-center mt-4">
+            <div class="bg-white p-4 rounded-3xl inline-block mb-6 shadow-xl">
+                <div id="qrcode"></div>
             </div>
-            
-            <button onclick="confirmTransfer()" class="w-full py-4 gold-bg rounded-2xl font-black italic uppercase text-xs shadow-xl active:scale-95 transition-transform">
-                Saya Sudah Transfer
+
+            <div class="text-left space-y-2 mb-8">
+                <p class="text-[7px] text-gray-500 font-black uppercase tracking-widest ml-1">Alamat Dompet <span id="coin-name">BTC</span></p>
+                <div class="bg-black/50 p-4 rounded-2xl border border-white/5 flex justify-between items-center">
+                    <p id="deposit-address" class="text-[9px] font-mono text-gray-400 break-all pr-4"></p>
+                    <button onclick="copyAddr()" class="text-yellow-500 active:scale-90 transition-transform">
+                        <i class="fa-solid fa-clone"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="text-left space-y-2 mb-8">
+                <p class="text-[7px] text-gray-500 font-black uppercase tracking-widest ml-1">Jumlah Transfer</p>
+                <input id="input-amount" type="number" step="any" placeholder="0.00" class="w-full bg-black border border-white/10 rounded-2xl p-4 text-sm font-bold outline-none focus:border-yellow-500 transition-all">
+            </div>
+
+            <button onclick="confirmTransfer()" class="w-full py-5 gold-bg rounded-2xl font-black italic uppercase text-xs shadow-lg active:scale-95 transition-all">
+                Konfirmasi Sudah Kirim
             </button>
         </div>
     </div>
 
-    <div class="p-4 bg-red-500/5 rounded-2xl border border-red-500/10">
-        <p class="text-[8px] text-red-500/60 leading-relaxed font-bold">
-            <i class="fa-solid fa-triangle-exclamation mr-1 text-red-500"></i> 
-            Pastikan Anda mengirim koin melalui jaringan yang sesuai. Kesalahan alamat/jaringan akan mengakibatkan kehilangan aset secara permanen. Admin tidak bertanggung jawab atas kesalahan user.
+    <div class="mt-auto pt-10 text-center">
+        <p class="text-[8px] text-gray-600 font-semibold leading-relaxed">
+            Hanya kirim <span id="coin-footer">BTC</span> ke alamat ini.<br>
+            Pengiriman aset lain akan menyebabkan kehilangan permanen.
         </p>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const app = initializeApp(APP_CONFIG.firebase);
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        // Ambil koin yang dipilih di dashboard
+        // Ambil koin yang dipilih dari localStorage
         const currentCoin = localStorage.getItem('selectedCoin') || "BTC";
-        const addr = APP_CONFIG.depositAddresses[currentCoin] || APP_CONFIG.adminWallet;
+        const addr = APP_CONFIG.depositAddresses[currentCoin] || APP_CONFIG.depositAddresses["ETH"];
 
         function initPage() {
-            document.getElementById('coin-label').innerText = currentCoin;
+            document.getElementById('coin-name').innerText = currentCoin;
+            document.getElementById('coin-footer').innerText = currentCoin;
+            document.getElementById('network-badge').innerText = "Jaringan " + currentCoin;
             document.getElementById('deposit-address').innerText = addr;
-            document.getElementById('network-info').innerText = currentCoin;
 
-            // Generate QR Code otomatis
+            // QR Code Generator
             new QRCode(document.getElementById("qrcode"), {
                 text: addr,
-                width: 140,
-                height: 140,
+                width: 160,
+                height: 160,
                 colorDark : "#000000",
                 colorLight : "#ffffff",
                 correctLevel : QRCode.CorrectLevel.H
             });
         }
 
-        // Fungsi Tombol Salin
         window.copyAddr = function() {
             navigator.clipboard.writeText(addr);
-            alert("Alamat " + currentCoin + " Berhasil Disalin!");
+            alert("Alamat berhasil disalin!");
         }
 
-        // Fungsi Konfirmasi Transfer (Kirim ke Firebase)
         window.confirmTransfer = async function() {
             const amount = document.getElementById('input-amount').value;
-            if(!amount || amount <= 0) return alert("Masukkan jumlah transfer yang valid!");
+            if(!amount || amount <= 0) return alert("Masukkan jumlah transfer!");
 
             const user = auth.currentUser;
-            if(!user) return alert("Sesi berakhir, silakan login ulang");
+            if(!user) return alert("Sesi habis, silakan login ulang.");
 
             try {
-                // Mencatat ke riwayat transaksi Firebase
                 await addDoc(collection(db, "users", user.uid, "transactions"), {
                     title: `Deposit ${currentCoin}`,
                     amount: parseFloat(amount),
@@ -111,16 +116,10 @@
                     status: 'pending',
                     timestamp: new Date()
                 });
-                alert("Konfirmasi diterima! Saldo akan masuk otomatis setelah divalidasi oleh Admin.");
+                alert("Laporan terkirim! Admin sedang memproses.");
                 location.href = 'dashboard.html';
-            } catch(e) {
-                alert("Gagal mengirim laporan. Cek koneksi internet Anda.");
-            }
+            } catch(e) { alert("Gagal mengirim laporan."); }
         }
-
-        onAuthStateChanged(auth, (user) => {
-            if (!user) location.href = 'login.html';
-        });
 
         initPage();
     </script>

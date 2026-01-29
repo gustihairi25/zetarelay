@@ -3,39 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Support Live Chat</title>
+    <title>Support | ZetaChain</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="config.js"></script>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; overflow: hidden; height: 100vh; }
-        .bubble-user { background: #f3ba2f; color: #000; border-radius: 1.2rem 1.2rem 0.2rem 1.2rem; align-self: flex-end; padding: 12px; max-width: 80%; font-weight: 700; font-size: 13px; }
-        .bubble-admin { background: #1a1a1a; color: #fff; border-radius: 1.2rem 1.2rem 1.2rem 0.2rem; border: 1px solid #333; align-self: flex-start; padding: 12px; max-width: 80%; font-weight: 700; font-size: 13px; }
-        #chat-container::-webkit-scrollbar { display: none; }
+        body { background: #000; color: #fff; height: 100vh; display: flex; flex-direction: column; }
+        .bubble-user { background: #f3ba2f; color: #000; align-self: flex-end; padding: 12px; border-radius: 1.2rem 1.2rem 0.2rem 1.2rem; margin-bottom: 8px; font-weight: 700; font-size: 13px; max-width: 80%; }
+        .bubble-admin { background: #1a1a1a; color: #fff; align-self: flex-start; padding: 12px; border-radius: 1.2rem 1.2rem 1.2rem 0.2rem; border: 1px solid #333; margin-bottom: 8px; font-weight: 700; font-size: 13px; max-width: 80%; }
     </style>
 </head>
-<body class="flex flex-col h-screen">
-
-    <div class="p-4 border-b border-white/10 flex items-center justify-between bg-black">
-        <div class="flex items-center gap-3">
-            <button onclick="window.location.href='dashboard.html'" class="p-2"><i data-lucide="chevron-left"></i></button>
-            <div>
-                <h1 class="text-sm font-black uppercase italic">Master Support</h1>
-                <p class="text-[8px] text-green-500 font-bold uppercase animate-pulse">Online</p>
-            </div>
-        </div>
-        <i data-lucide="shield-check" class="text-yellow-500 w-5 h-5"></i>
+<body>
+    <div class="p-4 border-b border-white/10 flex items-center gap-4 bg-black">
+        <button onclick="window.location.href='dashboard.html'"><i data-lucide="chevron-left"></i></button>
+        <h1 class="text-sm font-black uppercase italic">Live Support</h1>
     </div>
 
-    <div id="chat-container" class="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-black"></div>
+    <div id="chat-container" class="flex-1 overflow-y-auto p-4 flex flex-col"></div>
 
-    <div class="p-4 bg-black border-t border-white/10">
-        <div class="flex items-center gap-2 bg-[#111] p-1.5 rounded-2xl border border-white/5">
-            <input type="text" id="msg-input" placeholder="Ketik pesan di sini..." class="flex-1 bg-transparent border-none outline-none px-3 text-sm font-bold h-12">
-            <button id="btn-send" class="w-12 h-12 bg-[#f3ba2f] text-black rounded-xl flex items-center justify-center active:scale-90 transition-all">
-                <i data-lucide="send" class="w-5 h-5"></i>
-            </button>
-        </div>
+    <div class="p-4 bg-black border-t border-white/10 flex gap-2">
+        <input type="text" id="msg-input" class="flex-1 bg-[#111] border-none rounded-xl px-4 text-sm font-bold" placeholder="Tulis pesan...">
+        <button id="btn-send" class="w-12 h-12 bg-yellow-500 text-black rounded-xl flex items-center justify-center"><i data-lucide="send" class="w-5 h-5"></i></button>
     </div>
 
     <script type="module">
@@ -43,59 +31,30 @@
         import { getFirestore, collection, doc, onSnapshot, query, orderBy, addDoc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // Mengambil config dari file config.js
         const app = initializeApp(APP_CONFIG.firebase);
         const db = getFirestore(app);
         const auth = getAuth(app);
-        let currentUser = null;
+        let user = null;
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                loadMessages(user.uid);
-            } else { window.location.href = "login.html"; }
-        });
+        onAuthStateChanged(auth, (u) => { if(u) { user = u; load(); } });
 
-        function loadMessages(uid) {
-            const q = query(collection(db, "users", uid, "chats"), orderBy("timestamp", "asc"));
-            onSnapshot(q, (snap) => {
-                const container = document.getElementById('chat-container');
-                container.innerHTML = '';
-                snap.forEach(d => {
+        function load() {
+            onSnapshot(query(collection(db, "users", user.uid, "chats"), orderBy("timestamp", "asc")), (sn) => {
+                const box = document.getElementById('chat-container'); box.innerHTML = '';
+                sn.forEach(d => {
                     const m = d.data();
-                    const isAdmin = m.sender === 'admin';
-                    container.innerHTML += `
-                        <div class="flex flex-col ${isAdmin ? 'items-start' : 'items-end'}">
-                            <div class="${isAdmin ? 'bubble-admin' : 'bubble-user'}">
-                                ${m.text}
-                            </div>
-                            <span class="text-[7px] text-gray-600 mt-1 uppercase">${isAdmin ? 'Admin' : 'You'}</span>
-                        </div>`;
+                    box.innerHTML += `<div class="${m.sender==='admin'?'bubble-admin':'bubble-user'}">${m.text}</div>`;
                 });
-                container.scrollTop = container.scrollHeight;
+                box.scrollTop = box.scrollHeight;
             });
         }
 
         document.getElementById('btn-send').onclick = async () => {
-            const input = document.getElementById('msg-input');
-            const text = input.value.trim();
-            if(!text || !currentUser) return;
-
-            input.value = '';
-            try {
-                // Simpan pesan ke folder chat user spesifik agar admin bisa melihatnya
-                await addDoc(collection(db, "users", currentUser.uid, "chats"), {
-                    sender: 'user',
-                    text: text,
-                    timestamp: serverTimestamp()
-                });
-                
-                // Update status di dokumen user agar muncul notifikasi di admin panel
-                await updateDoc(doc(db, "users", currentUser.uid), {
-                    lastMsgBy: 'user',
-                    lastRead: false
-                });
-            } catch (e) { alert("Gagal mengirim pesan."); }
+            const inp = document.getElementById('msg-input');
+            if(!inp.value.trim() || !user) return;
+            await addDoc(collection(db, "users", user.uid, "chats"), { sender:'user', text:inp.value, timestamp:serverTimestamp() });
+            await updateDoc(doc(db, "users", user.uid), { lastMsgBy:'user', lastRead:false });
+            inp.value = '';
         };
         lucide.createIcons();
     </script>

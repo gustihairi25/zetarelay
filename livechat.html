@@ -3,59 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Support | ZetaChain</title>
+    <title>Support Live Chat</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="config.js"></script>
     <style>
-        body { background: #000; color: #fff; height: 100vh; display: flex; flex-direction: column; }
-        .bubble-user { background: #f3ba2f; color: #000; align-self: flex-end; padding: 12px; border-radius: 1.2rem 1.2rem 0.2rem 1.2rem; margin-bottom: 8px; font-weight: 700; font-size: 13px; max-width: 80%; }
-        .bubble-admin { background: #1a1a1a; color: #fff; align-self: flex-start; padding: 12px; border-radius: 1.2rem 1.2rem 1.2rem 0.2rem; border: 1px solid #333; margin-bottom: 8px; font-weight: 700; font-size: 13px; max-width: 80%; }
+        body { background: #000; color: #fff; font-family: sans-serif; overflow: hidden; height: 100vh; }
+        .bubble-user { background: #f3ba2f; color: #000; border-radius: 1.2rem 1.2rem 0.2rem 1.2rem; align-self: flex-end; padding: 10px 14px; max-width: 85%; font-weight: 700; font-size: 13px; margin-bottom: 8px; }
+        .bubble-admin { background: #1a1a1a; color: #fff; border-radius: 1.2rem 1.2rem 1.2rem 0.2rem; border: 1px solid #333; align-self: flex-start; padding: 10px 14px; max-width: 85%; font-weight: 700; font-size: 13px; margin-bottom: 8px; }
+        #chat-container::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body>
-    <div class="p-4 border-b border-white/10 flex items-center gap-4 bg-black">
-        <button onclick="window.location.href='dashboard.html'"><i data-lucide="chevron-left"></i></button>
-        <h1 class="text-sm font-black uppercase italic">Live Support</h1>
+<body class="flex flex-col h-full">
+    <div class="p-4 border-b border-white/10 flex items-center gap-4 bg-black/50 backdrop-blur-md shrink-0">
+        <button onclick="window.location.href='dashboard.html'" class="text-gray-400"><i data-lucide="arrow-left"></i></button>
+        <div>
+            <h1 class="text-sm font-black uppercase italic gold-text">Customer Support</h1>
+            <p class="text-[10px] text-green-500 font-bold uppercase tracking-widest">Online & Ready to Help</p>
+        </div>
     </div>
 
-    <div id="chat-container" class="flex-1 overflow-y-auto p-4 flex flex-col"></div>
+    <div id="chat-container" class="flex-1 overflow-y-auto p-4 flex flex-col no-scrollbar">
+        </div>
 
-    <div class="p-4 bg-black border-t border-white/10 flex gap-2">
-        <input type="text" id="msg-input" class="flex-1 bg-[#111] border-none rounded-xl px-4 text-sm font-bold" placeholder="Tulis pesan...">
-        <button id="btn-send" class="w-12 h-12 bg-yellow-500 text-black rounded-xl flex items-center justify-center"><i data-lucide="send" class="w-5 h-5"></i></button>
+    <div class="p-4 bg-black border-t border-white/10 shrink-0">
+        <div class="flex gap-2">
+            <input type="text" id="msg-input" class="flex-1 bg-[#111] border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-yellow-500 transition-all" placeholder="Ketik pesan Anda...">
+            <button id="btn-send" class="w-12 h-12 bg-[#f3ba2f] text-black flex items-center justify-center rounded-xl active:scale-90 transition-transform">
+                <i data-lucide="send" class="w-5 h-5"></i>
+            </button>
+        </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, doc, onSnapshot, query, orderBy, addDoc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        const app = initializeApp(APP_CONFIG.firebase);
+        // Konfigurasi Firebase (PASTIKAN SAMA DENGAN ADMIN)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrpBJTtankyLgimtOwuriFpiyuC5K10OI",
+            authDomain: "studio-727777898-40aea.firebaseapp.com",
+            projectId: "studio-727777898-40aea",
+            appId: "1:351263967108:web:a0c01af41422903cc17fd1"
+        };
+
+        const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
-        let user = null;
 
-        onAuthStateChanged(auth, (u) => { if(u) { user = u; load(); } });
+        let currentUser = null;
 
-        function load() {
-            onSnapshot(query(collection(db, "users", user.uid, "chats"), orderBy("timestamp", "asc")), (sn) => {
-                const box = document.getElementById('chat-container'); box.innerHTML = '';
-                sn.forEach(d => {
+        // Cek Status Login
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                loadMessages(user.uid);
+            } else {
+                alert("Silakan login terlebih dahulu!");
+                window.location.href = "login.html";
+            }
+        });
+
+        // Muat Pesan Realtime
+        function loadMessages(uid) {
+            const q = query(collection(db, "users", uid, "chats"), orderBy("timestamp", "asc"));
+            onSnapshot(q, (snap) => {
+                const container = document.getElementById('chat-container');
+                container.innerHTML = '';
+                snap.forEach(d => {
                     const m = d.data();
-                    box.innerHTML += `<div class="${m.sender==='admin'?'bubble-admin':'bubble-user'}">${m.text}</div>`;
+                    const isAdmin = m.sender === 'admin';
+                    const bubble = document.createElement('div');
+                    bubble.className = isAdmin ? 'bubble-admin' : 'bubble-user';
+                    bubble.innerHTML = `<p>${m.text}</p>`;
+                    container.appendChild(bubble);
                 });
-                box.scrollTop = box.scrollHeight;
+                container.scrollTop = container.scrollHeight;
             });
         }
 
-        document.getElementById('btn-send').onclick = async () => {
-            const inp = document.getElementById('msg-input');
-            if(!inp.value.trim() || !user) return;
-            await addDoc(collection(db, "users", user.uid, "chats"), { sender:'user', text:inp.value, timestamp:serverTimestamp() });
-            await updateDoc(doc(db, "users", user.uid), { lastMsgBy:'user', lastRead:false });
-            inp.value = '';
+        // Fungsi Kirim Pesan
+        async function sendMessage() {
+            const input = document.getElementById('msg-input');
+            const text = input.value.trim();
+            
+            if (!text || !currentUser) return;
+
+            input.value = ''; // Kosongkan input segera untuk UX yang cepat
+            
+            try {
+                // 1. Simpan pesan ke sub-koleksi user
+                await addDoc(collection(db, "users", currentUser.uid, "chats"), {
+                    sender: 'user',
+                    text: text,
+                    timestamp: serverTimestamp()
+                });
+                
+                // 2. Beri tahu admin bahwa ada pesan baru (untuk notifikasi di admin panel)
+                await updateDoc(doc(db, "users", currentUser.uid), {
+                    lastMsgBy: 'user',
+                    lastRead: false
+                });
+            } catch (e) {
+                console.error("Error sending message: ", e);
+                alert("Gagal mengirim pesan. Periksa koneksi atau Firebase Rules.");
+            }
+        }
+
+        // Event Listener Tombol Klik & Enter
+        document.getElementById('btn-send').onclick = sendMessage;
+        document.getElementById('msg-input').onkeypress = (e) => {
+            if (e.key === 'Enter') sendMessage();
         };
+
         lucide.createIcons();
     </script>
 </body>

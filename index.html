@@ -3,139 +3,270 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ZetaChain Pro | Gateway</title>
+    <title>ZetaChain Pro | Dashboard</title>
+    
+    <!-- LOAD KONFIGURASI -->
+    <script>
+        const APP_CONFIG = {
+            firebase: {
+                apiKey: "AIzaSyDrpBJTtankyLgimtOwuriFpiyuC5K10OI",
+                authDomain: "studio-727777898-40aea.firebaseapp.com",
+                projectId: "studio-727777898-40aea",
+                storageBucket: "studio-727777898-40aea.appspot.com",
+                messagingSenderId: "351263967108",
+                appId: "1:351263967108:web:a0c01af41422903cc17fd1"
+            },
+            depositAddresses: {
+                "BTC": { addr: "bc1q6al6pkdkwt7vpgujwr7fvnjxvkdaet64q5rvnj", qris: "img/qris-btc.jpg", rate: 1045000000 },
+                "ETH": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", qris: "img/qris-eth.jpg", rate: 42000000 },
+                "SOL": { addr: "5iShtcHj9sAGXoRwbCb5f51ew9B3Rjtn9yM5CXABLgi2", qris: "img/qris-sol.jpg", rate: 2800000 },
+                "TRX": { addr: "TBgjd7vYBzFzoUkhtmYtFQvTxhdjcF36E2", qris: "img/qris-trx.jpg", rate: 2400 },
+                "BNB": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", qris: "img/qris-bnb.jpg", rate: 9200000 },
+                "MATIC": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", qris: "img/qris-matic.jpg", rate: 9000 },
+                "LINEA": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", qris: "img/qris-linea.jpg", rate: 42000000 },
+                "ARB": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", qris: "img/qris-arb.jpg", rate: 12000 },
+                "BASE": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", qris: "img/qris-base.jpg", rate: 42000000 },
+                "OP": { addr: "0x4c51175cdf9b6311ce152694f146d29be8911432", qris: "img/qris-op.jpg", rate: 25000 }
+            }
+        };
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="config.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
-        body { background-color: #000; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap');
+        body { background: #000; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
         .bg-card { background: #0f0f0f; border: 1px solid #1a1a1a; }
         .gold-text { color: #f3ba2f; }
-        .gold-bg { background: #f3ba2f; color: #000; }
+        .glass-nav { background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(20px); border-top: 1px solid #1a1a1a; }
         
-        /* Animasi Slide */
-        .slide-content { display: flex; width: 200%; transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1); }
-        .form-box { width: 50%; padding: 0 20px; }
-        .active-register .slide-content { transform: translateX(-50%); }
+        /* Tombol interaktif */
+        .btn-active:active { transform: scale(0.95); opacity: 0.8; }
         
-        input { background: #000 !important; border: 1px solid #1a1a1a !important; color: white !important; }
-        input:focus { border-color: #f3ba2f !important; outline: none; }
+        .custom-select {
+            appearance: none !important;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23f3ba2f'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") !important;
+            background-repeat: no-repeat !important;
+            background-position: right 1rem center !important;
+            background-size: 1.2em !important;
+        }
+        #tv_main { border-radius: 1.5rem; overflow: hidden; background: #0f0f0f; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #666; transition: all 0.2s; background: none; border: none; cursor: pointer; }
+        .nav-item.active { color: #f3ba2f; }
+        .fade-update { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="p-4">
-
-    <div id="auth-wrapper" class="w-full max-w-md">
-        <div class="flex flex-col items-center mb-6">
-            <div class="w-14 h-14 gold-bg rounded-2xl flex items-center justify-center text-2xl shadow-2xl mb-3">
-                <i class="fa-solid fa-bolt-lightning"></i>
-            </div>
-            <h1 id="page-title" class="text-xl font-black italic gold-text uppercase">Masuk Terminal</h1>
-        </div>
-
-        <div class="px-5 mb-6">
-            <button onclick="connectWallet()" id="btn-wallet" class="w-full py-4 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-3 active:scale-95 transition-all">
-                <i class="fa-solid fa-wallet text-blue-400"></i>
-                <span class="text-[10px] font-black uppercase italic">Hubungkan Wallet Crypto</span>
+<body class="pb-32">
+    <!-- Header -->
+    <div class="p-6 flex justify-between items-center sticky top-0 z-50 bg-black/80 backdrop-blur-md">
+        <div class="flex items-center gap-4">
+            <button onclick="window.history.length > 1 ? history.back() : window.location.href='index.html'" class="p-2 bg-white/5 rounded-xl border border-white/10 text-gray-400 btn-active">
+                <i data-lucide="chevron-left"></i>
             </button>
+            <h1 class="text-xs font-black italic gold-text uppercase tracking-widest">ZetaChain Pro</h1>
         </div>
+        <button onclick="window.location.href='livechat.html'" class="p-3 bg-yellow-500/10 rounded-2xl text-yellow-500 border border-yellow-500/20 btn-active">
+            <i data-lucide="message-circle"></i>
+        </button>
+    </div>
 
-        <div class="overflow-hidden">
-            <div class="slide-content">
-                
-                <div class="form-box">
-                    <div class="bg-card p-7 rounded-[2.5rem] border border-white/5 space-y-4">
-                        <input id="l-email" type="email" placeholder="Email Address" class="w-full rounded-2xl p-4 text-xs font-bold">
-                        <input id="l-pass" type="password" placeholder="Password" class="w-full rounded-2xl p-4 text-xs font-bold">
-                        <button onclick="doLogin()" id="btn-l" class="w-full py-4 gold-bg rounded-2xl font-black uppercase text-[10px] italic">Sign In</button>
-                        <p class="text-center text-[9px] text-gray-500 font-bold uppercase">Baru di sini? <button onclick="toggleView(true)" class="gold-text">Daftar Akun</button></p>
+    <!-- Grafik Perdagangan -->
+    <div class="px-6 mb-6">
+        <div class="bg-card rounded-[2.5rem] border border-white/5 h-[280px] overflow-hidden shadow-2xl">
+            <div id="tv_main" class="h-full w-full"></div>
+        </div>
+    </div>
+
+    <!-- Bagian Portofolio -->
+    <div class="px-6 mb-8">
+        <div class="bg-card p-6 rounded-[2.5rem] border border-white/5 shadow-2xl text-center space-y-6">
+            <div>
+                <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1 italic">Total Nilai Portofolio</p>
+                <h2 id="total-idr" class="text-3xl font-black italic gold-text tracking-tighter">Rp 0</h2>
+            </div>
+
+            <!-- Pemilih Aset -->
+            <div class="bg-black/50 p-5 rounded-[2rem] border border-white/5 text-left relative overflow-hidden">
+                <p class="text-[8px] font-black text-yellow-500 uppercase tracking-[0.2em] mb-3">Pilih Dompet Aset</p>
+                <select id="coin-selector" class="custom-select w-full bg-[#151515] border border-white/10 p-4 rounded-xl outline-none font-black italic text-sm text-white focus:border-yellow-500 mb-6 transition-all"></select>
+                <div id="wallet-info-box" class="flex justify-between items-end">
+                    <div>
+                        <p id="asset-bal" class="text-2xl font-black italic text-white">0.000000</p>
+                        <p id="asset-name" class="text-[9px] text-gray-500 font-black uppercase tracking-widest italic">Saldo Aset</p>
+                    </div>
+                    <div class="text-right">
+                        <p id="asset-idr" class="text-sm font-black italic text-green-500">Rp 0</p>
+                        <p class="text-[7px] text-gray-600 font-bold uppercase tracking-widest">Estimasi IDR</p>
                     </div>
                 </div>
+            </div>
 
-                <div class="form-box">
-                    <div class="bg-card p-7 rounded-[2.5rem] border border-white/5 space-y-4">
-                        <input id="r-email" type="email" placeholder="Email Baru" class="w-full rounded-2xl p-4 text-xs font-bold">
-                        <input id="r-pass" type="password" placeholder="Password Baru" class="w-full rounded-2xl p-4 text-xs font-bold">
-                        <button onclick="doRegister()" id="btn-r" class="w-full py-4 bg-white text-black rounded-2xl font-black uppercase text-[10px] italic">Daftar Sekarang</button>
-                        <p class="text-center text-[9px] text-gray-500 font-bold uppercase">Sudah punya akun? <button onclick="toggleView(false)" class="gold-text">Sign In</button></p>
-                    </div>
-                </div>
-
+            <!-- Tombol Utama -->
+            <div class="flex gap-3">
+                <button onclick="window.location.href='topup.html'" class="flex-1 py-4 bg-yellow-500 text-black rounded-2xl font-black uppercase italic text-[10px] shadow-lg shadow-yellow-500/30 btn-active">Deposit</button>
+                <button onclick="window.location.href='withdraw.html'" class="flex-1 py-4 bg-white/5 border border-white/10 rounded-2xl font-black uppercase italic text-[10px] btn-active">Withdraw</button>
             </div>
         </div>
     </div>
 
+    <!-- Menu Cepat -->
+    <div class="px-6 mb-8 grid grid-cols-2 gap-3">
+        <button onclick="window.location.href='tambahteman.html'" class="bg-card p-4 rounded-2xl border border-white/5 flex items-center gap-3 btn-active">
+            <i data-lucide="users" class="w-4 h-4 text-yellow-500"></i>
+            <span class="text-[9px] font-black uppercase italic">Tambah Teman</span>
+        </button>
+        <button onclick="window.location.href='refferal.html'" class="bg-card p-4 rounded-2xl border border-white/5 flex items-center gap-3 btn-active">
+            <i data-lucide="gift" class="w-4 h-4 text-yellow-500"></i>
+            <span class="text-[9px] font-black uppercase italic">Referal</span>
+        </button>
+    </div>
+
+    <!-- Daftar Pasar -->
+    <div class="px-6 mb-8">
+        <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4 px-2">Pantauan Pasar</p>
+        <div id="market-container" class="space-y-2"></div>
+    </div>
+
+    <!-- Navigasi Bawah -->
+    <div class="fixed bottom-0 left-0 right-0 glass-nav px-2 py-4 flex justify-around items-center z-50">
+        <button class="nav-item active btn-active" onclick="window.location.href='dashboard.html'">
+            <i data-lucide="layout-grid" class="w-5 h-5"></i>
+            <span class="text-[8px] font-black uppercase tracking-tighter">Beranda</span>
+        </button>
+        <button onclick="window.location.href='future-trade.html'" class="nav-item btn-active">
+            <i data-lucide="trending-up" class="w-5 h-5"></i>
+            <span class="text-[8px] font-black uppercase tracking-tighter">Trade</span>
+        </button>
+        <button onclick="window.location.href='kyc.html'" class="nav-item btn-active">
+            <i data-lucide="user-check" class="w-5 h-5"></i>
+            <span class="text-[8px] font-black uppercase tracking-tighter">KYC</span>
+        </button>
+        <button onclick="window.location.href='profil.html'" class="nav-item btn-active">
+            <i data-lucide="user" class="w-5 h-5"></i>
+            <span class="text-[8px] font-black uppercase tracking-tighter">Profil</span>
+        </button>
+        <button onclick="window.location.href='setting-akun.html'" class="nav-item btn-active">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+            <span class="text-[8px] font-black uppercase tracking-tighter">Setting</span>
+        </button>
+    </div>
+
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+        // Inisialisasi Firebase
         const app = initializeApp(APP_CONFIG.firebase);
-        const auth = getAuth(app);
         const db = getFirestore(app);
+        const auth = getAuth(app);
 
-        const wrapper = document.getElementById('auth-wrapper');
-        const title = document.getElementById('page-title');
+        let userData = {};
 
-        // Cek Sesi Login
         onAuthStateChanged(auth, (user) => {
-            if (user) window.location.href = "dashboard.html";
+            if (user) {
+                onSnapshot(doc(db, "users", user.uid), (s) => {
+                    if(s.exists()) {
+                        userData = s.data();
+                        initCoinSelector();
+                        renderDashboard();
+                    }
+                }, (err) => {
+                    console.error("Firestore error:", err);
+                });
+            } else {
+                window.location.href = "login.html";
+            }
         });
 
-        // Fungsi Slide
-        window.toggleView = (showReg) => {
-            if(showReg) {
-                wrapper.classList.add('active-register');
-                title.innerText = "Daftar Akun";
-            } else {
-                wrapper.classList.remove('active-register');
-                title.innerText = "Masuk Terminal";
-            }
-        };
+        function initCoinSelector() {
+            const selector = document.getElementById('coin-selector');
+            if(!selector || selector.options.length > 0) return;
 
-        // Login Manual
-        window.doLogin = async () => {
-            const e = document.getElementById('l-email').value;
-            const p = document.getElementById('l-pass').value;
-            if(!e || !p) return alert("Harap isi semua kolom!");
-            try {
-                await signInWithEmailAndPassword(auth, e, p);
-            } catch(err) { alert("Login gagal! Cek email dan password."); }
-        };
+            Object.keys(APP_CONFIG.depositAddresses).forEach(coin => {
+                const opt = document.createElement('option');
+                opt.value = coin;
+                opt.innerText = coin + " Wallet";
+                selector.appendChild(opt);
+            });
 
-        // Daftar Manual
-        window.doRegister = async () => {
-            const e = document.getElementById('r-email').value;
-            const p = document.getElementById('r-pass').value;
-            if(!e || p.length < 6) return alert("Password minimal 6 karakter!");
-            try {
-                const res = await createUserWithEmailAndPassword(auth, e, p);
-                // Buat data user di Firestore
-                await setDoc(doc(db, "users", res.user.uid), {
-                    email: e, balance: 0, kyc_status: "Unverified", timestamp: new Date()
-                });
-            } catch(err) { alert("Pendaftaran gagal."); }
-        };
+            selector.addEventListener('change', updateWalletDisplay);
+        }
 
-        // Wallet Connect Logic (Menghilangkan Pesan "Sistem Belum Siap")
-        window.connectWallet = async () => {
-            const btn = document.getElementById('btn-wallet');
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menghubungkan...';
+        function renderDashboard() {
+            let totalPortfolio = userData.balance || 0;
+            const marketContainer = document.getElementById('market-container');
+            if(!marketContainer) return;
             
-            if (window.ethereum) {
-                try {
-                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    localStorage.setItem('walletAddress', accounts[0]);
-                    window.location.href = "dashboard.html";
-                } catch (err) {
-                    btn.innerHTML = '<i class="fa-solid fa-wallet"></i> Hubungkan Wallet Crypto';
-                    alert("Koneksi dompet ditolak.");
-                }
-            } else {
-                btn.innerHTML = '<i class="fa-solid fa-wallet"></i> Hubungkan Wallet Crypto';
-                alert("Dompet Crypto (MetaMask/Trust) tidak terdeteksi. Silakan gunakan email.");
-            }
+            marketContainer.innerHTML = "";
+            const coins = APP_CONFIG.depositAddresses;
+
+            Object.keys(coins).forEach(coin => {
+                const balKey = coin.toLowerCase() + "_bal";
+                const bal = userData[balKey] || 0;
+                const price = coins[coin].rate || 0;
+                const idrVal = bal * price;
+                totalPortfolio += idrVal;
+
+                marketContainer.innerHTML += `
+                    <div class="bg-card px-5 py-4 rounded-2xl flex justify-between items-center border border-white/5 fade-update active:bg-white/5 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 bg-yellow-500/10 rounded-xl flex items-center justify-center font-black gold-text text-[10px]">${coin.substring(0,2)}</div>
+                            <div>
+                                <p class="text-[11px] font-black text-white italic">${coin}</p>
+                                <p class="text-[7px] text-gray-500 font-bold uppercase tracking-widest">Mainnet Network</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[11px] font-black gold-text italic">Rp ${price.toLocaleString('id-ID')}</p>
+                            <p class="text-[7px] text-green-500 font-bold uppercase tracking-widest">Live</p>
+                        </div>
+                    </div>`;
+            });
+
+            const totalEl = document.getElementById('total-idr');
+            if(totalEl) totalEl.innerText = "Rp " + totalPortfolio.toLocaleString('id-ID');
+            updateWalletDisplay();
+        }
+
+        function updateWalletDisplay() {
+            const selector = document.getElementById('coin-selector');
+            const selectedCoin = selector ? selector.value : null;
+            if(!selectedCoin || !userData) return;
+
+            const balKey = selectedCoin.toLowerCase() + "_bal";
+            const bal = userData[balKey] || 0;
+            const price = APP_CONFIG.depositAddresses[selectedCoin].rate;
+            const idrVal = bal * price;
+
+            document.getElementById('asset-bal').innerText = bal.toFixed(6);
+            document.getElementById('asset-name').innerText = selectedCoin + " Wallet Balance";
+            document.getElementById('asset-idr').innerText = "Rp " + idrVal.toLocaleString('id-ID');
+        }
+
+        // TradingView Initializer
+        window.onload = () => {
+            try {
+                new TradingView.widget({
+                    "autosize": true,
+                    "symbol": "BINANCE:BTCUSDT",
+                    "interval": "1",
+                    "theme": "dark",
+                    "style": "3",
+                    "container_id": "tv_main",
+                    "hide_top_toolbar": true,
+                    "hide_legend": true,
+                    "backgroundColor": "#000000",
+                    "save_image": false
+                });
+            } catch (e) { console.error("TradingView failed to load."); }
         };
+
+        lucide.createIcons();
     </script>
 </body>
 </html>
+

